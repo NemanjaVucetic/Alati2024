@@ -1,27 +1,13 @@
 package model
 
-import "fmt"
-
 type Config struct {
-	naziv     string
-	verzija   float64
-	parametri map[string]string
-}
-
-func NewConfig(naziv string, verzija float64, parametri map[string]string) *Config {
-	return &Config{
-		naziv:     naziv,
-		verzija:   verzija,
-		parametri: parametri,
-	}
-}
-
-func (c Config) GenerateKey() string {
-	return c.naziv + fmt.Sprintf("%.2f", c.verzija)
+	Name    string            `json:"name"`
+	Version float64           `json:"version"`
+	Params  map[string]string `json:"params"`
 }
 
 type ConfigRepository interface {
-	Get(key string) Config
+	Get(name string, version int) (Config, error)
 	Add(c Config)
-	Delete(key string)
+	Delete(name string, version int) error
 }

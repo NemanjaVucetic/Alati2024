@@ -2,27 +2,42 @@ package repo
 
 import (
 	"alati/model"
+	"errors"
+	"fmt"
 )
 
 type ConfigInMemRepository struct {
-	config map[string]model.Config
+	configs map[string]model.Config
 }
 
-func (c2 ConfigInMemRepository) Get(key string) model.Config {
-	c := c2.config[key]
-	return c
+func (c ConfigInMemRepository) Add(config model.Config) {
+	key := fmt.Sprintf("%s/%d", config.Name, config.Version)
+	c.configs[key] = config
 }
 
-func (c2 ConfigInMemRepository) Add(c model.Config) {
-	c2.config[c.GenerateKey()] = c
+func (c ConfigInMemRepository) Get(name string, version int) (model.Config, error) {
+	key := fmt.Sprintf("%s/%d", name, version)
+	config, ok := c.configs[key]
+	if !ok {
+		return model.Config{}, errors.New("config not found")
+	}
+	return config, nil
 }
 
-func (c2 ConfigInMemRepository) Delete(key string) {
-	delete(c2.config, key)
+func (c ConfigInMemRepository) Delete(name string, version int) error {
+	key := fmt.Sprintf("%s/%d", name, version)
+
+	if _, ok := c.configs[key]; !ok {
+		return errors.New("config not found")
+	}
+
+	delete(c.configs, key)
+
+	return nil
 }
 
 func NewConfigInMemRepository() model.ConfigRepository {
 	return ConfigInMemRepository{
-		config: make(map[string]model.Config),
+		configs: make(map[string]model.Config),
 	}
 }

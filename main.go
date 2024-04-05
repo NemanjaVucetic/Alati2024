@@ -1,29 +1,32 @@
 package main
 
 import (
+	"alati/handler"
 	"alati/model"
-	repo "alati/repo"
-	"fmt"
+	"alati/repo"
+	"alati/service"
+	"github.com/gorilla/mux"
+	"net/http"
 )
-import service "alati/service"
 
 func main() {
 	repo := repo.NewConfigInMemRepository()
 	service := service.NewConfigService(repo)
-	service.Hello()
 
-	mapa := make(map[string]string)
+	params := make(map[string]string)
+	params["username"] = "pera"
+	params["port"] = "5432"
+	config := model.Config{
+		Name:    "db_config",
+		Version: 2,
+		Params:  params,
+	}
+	service.Add(config)
+	h := handler.NewConfigHandler(service)
 
-	mapa["kljuc1"] = "cao"
-	mapa["kljuc2"] = "cao"
-	mapa["kljuc3"] = "cao"
+	router := mux.NewRouter()
 
-	c := model.NewConfig("cao", 2.12, mapa)
-	conf := *c
-	//fmt.Println(c.GenerateKey())
+	router.HandleFunc("/configs/{name}/{version}", h.Get).Methods("GET")
 
-	repo.Add(conf)
-	repo.Delete(conf.GenerateKey())
-	fmt.Println(repo.Get("cao2.12"))
-
+	http.ListenAndServe("0.0.0.0:8000", router)
 }

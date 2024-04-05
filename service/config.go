@@ -2,7 +2,6 @@ package service
 
 import (
 	"alati/model"
-	"fmt"
 )
 
 type ConfigService struct {
@@ -15,17 +14,17 @@ func NewConfigService(repo model.ConfigRepository) ConfigService {
 	}
 }
 
-func (s ConfigService) Get(key string) model.Config {
-	return s.repo.Get(key)
+func (s ConfigService) Get(name string, version int) (model.Config, error) {
+	return s.repo.Get(name, version)
 }
 
 func (s ConfigService) Add(c model.Config) {
 	s.repo.Add(c)
 }
-func (s ConfigService) Delete(key string) {
-	s.repo.Delete(key)
-}
 
-func (s ConfigService) Hello() {
-	fmt.Println("poz")
+func (s ConfigService) Delete(name string, version int) {
+	err := s.repo.Delete(name, version)
+	if err != nil {
+		return
+	}
 }
