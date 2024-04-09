@@ -20,9 +20,10 @@ func (s ConfigGroupService) Add(c model.ConfigGroup) {
 	s.repo.Add(c)
 }
 
-func (s ConfigGroupService) Delete(name string, version int) {
+func (s ConfigGroupService) Delete(name string, version int) error {
 	err := s.repo.Delete(name, version)
 	if err != nil {
-		return
+		return err
 	}
+	return nil
 }

@@ -2,7 +2,7 @@ package model
 
 type Config struct {
 	Name    string            `json:"name"`
-	Version float64           `json:"version"`
+	Version int               `json:"version"`
 	Params  map[string]string `json:"params"`
 }
 

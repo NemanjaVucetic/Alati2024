@@ -22,9 +22,10 @@ func (s ConfigService) Add(c model.Config) {
 	s.repo.Add(c)
 }
 
-func (s ConfigService) Delete(name string, version int) {
+func (s ConfigService) Delete(name string, version int) error {
 	err := s.repo.Delete(name, version)
 	if err != nil {
-		return
+		return err
 	}
+	return nil
 }

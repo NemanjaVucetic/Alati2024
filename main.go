@@ -10,8 +10,12 @@ import (
 )
 
 func main() {
-	repo := repo.NewConfigInMemRepository()
-	service := service.NewConfigService(repo)
+
+	//test {
+	repoC := repo.NewConfigInMemRepository()
+	serviceC := service.NewConfigService(repoC)
+	repoG := repo.NewConfigGroupInMemRepository()
+	serviceG := service.NewConfigGroupService(repoG)
 
 	params := make(map[string]string)
 	params["username"] = "pera"
@@ -21,12 +25,22 @@ func main() {
 		Version: 2,
 		Params:  params,
 	}
-	service.Add(config)
-	h := handler.NewConfigHandler(service)
+	serviceC.Add(config)
+	h := handler.NewConfigHandler(serviceC)
+
+	hG := handler.NewConfigGruopHandler(serviceG)
+	// }
 
 	router := mux.NewRouter()
 
 	router.HandleFunc("/configs/{name}/{version}", h.Get).Methods("GET")
+	router.HandleFunc("/configGroups/{name}/{version}", hG.Get).Methods("GET")
+	router.HandleFunc("/configs/", h.Add).Methods("POST")
+	router.HandleFunc("/configGroups/", hG.Add).Methods("POST")
+	router.HandleFunc("/configs/{name}/{version}", h.Delete).Methods("DELETE")
+	router.HandleFunc("/configGroups/{name}/{version}", hG.Delete).Methods("DELETE")
+	router.HandleFunc("/configGroups/{nameG}/{versionG}/config/{nameC}/{versionC}", hG.AddConfToGroup).Methods("PUT")
+	router.HandleFunc("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", hG.RemoveConfFromGroup).Methods("PUT")
 
 	http.ListenAndServe("0.0.0.0:8000", router)
 }
