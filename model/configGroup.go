@@ -1,9 +1,9 @@
 package model
 
 type ConfigGroup struct {
-	Name    string             `json:"name"`
-	Version int                `json:"version"`
-	Configs map[string]*Config `json:"configs"`
+	Name    string            `json:"name"`
+	Version int               `json:"version"`
+	Configs map[string]Config `json:"configs"`
 }
 
 type ConfigGroupRepository interface {

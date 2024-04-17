@@ -14,12 +14,14 @@ import (
 )
 
 type ConfigGroupHandler struct {
-	service service.ConfigGroupService
+	service       service.ConfigGroupService
+	serviceConfig service.ConfigService
 }
 
-func NewConfigGruopHandler(service service.ConfigGroupService) ConfigGroupHandler {
+func NewConfigGruopHandler(service service.ConfigGroupService, serviceConfig service.ConfigService) ConfigGroupHandler {
 	return ConfigGroupHandler{
-		service: service,
+		service:       service,
+		serviceConfig: serviceConfig,
 	}
 }
 
@@ -81,12 +83,7 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	con := model.ConfigGroup{
-		Name:    rt.Name,
-		Version: rt.Version,
-		Configs: rt.Configs,
-	}
-	c.service.Add(con)
+	c.service.Add(*rt)
 
 	renderJSON(w, rt)
 }
@@ -133,8 +130,8 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 	key := fmt.Sprintf("%s/%d", nameC, versionC)
 
 	group, _ := c.service.Get(nameG, versionG)
-	conf, _ := service.ConfigService{}.Get(nameC, versionC)
-	group.Configs[key] = &conf
+	conf, _ := c.serviceConfig.Get(nameC, versionC)
+	group.Configs[key] = conf
 
 	renderJSON(w, "success Put")
 }
