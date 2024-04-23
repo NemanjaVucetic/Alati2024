@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type ConfigHandler struct {
@@ -46,6 +47,7 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 }
 
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(9 * time.Second)
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
 
@@ -79,7 +81,7 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if mediatype != " application/json" {
+	if mediatype != "application/json" {
 		err := errors.New("expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
@@ -91,12 +93,7 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	con := model.Config{
-		Name:    rt.Name,
-		Version: rt.Version,
-		Params:  rt.Params,
-	}
-	c.service.Add(con)
+	c.service.Add(*rt)
 
 	renderJSON(w, rt)
 }

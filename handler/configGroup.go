@@ -14,12 +14,14 @@ import (
 )
 
 type ConfigGroupHandler struct {
-	service service.ConfigGroupService
+	service       service.ConfigGroupService
+	serviceConfig service.ConfigService
 }
 
-func NewConfigGruopHandler(service service.ConfigGroupService) ConfigGroupHandler {
+func NewConfigGroupHandler(service service.ConfigGroupService, serviceConfig service.ConfigService) ConfigGroupHandler {
 	return ConfigGroupHandler{
-		service: service,
+		service:       service,
+		serviceConfig: serviceConfig,
 	}
 }
 
@@ -45,7 +47,6 @@ func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	config, err := c.service.Get(name, versionInt)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -69,7 +70,7 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if mediatype != " application/json" {
+	if mediatype != "application/json" {
 		err := errors.New("expect application/json Content-Type")
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		return
@@ -81,12 +82,14 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	con := model.ConfigGroup{
-		Name:    rt.Name,
-		Version: rt.Version,
-		Configs: rt.Configs,
+	for _, value := range rt.Configs {
+		_, err := c.serviceConfig.Get(value.Name, value.Version)
+		if err != nil {
+			c.serviceConfig.Add(value)
+		}
 	}
-	c.service.Add(con)
+
+	c.service.Add(*rt)
 
 	renderJSON(w, rt)
 }
@@ -130,11 +133,13 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	key := fmt.Sprintf("%s/%d", nameC, versionC)
-
 	group, _ := c.service.Get(nameG, versionG)
-	conf, _ := service.ConfigService{}.Get(nameC, versionC)
-	group.Configs[key] = &conf
+	conf, _ := c.serviceConfig.Get(nameC, versionC)
+
+	err = c.service.AddConfigToGroup(group, conf)
+	if err != nil {
+		return
+	}
 
 	renderJSON(w, "success Put")
 }
@@ -161,7 +166,10 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	key := fmt.Sprintf("%s/%d", nameC, versionC)
 
 	group, _ := c.service.Get(nameG, versionG)
-	delete(group.Configs, key)
+	err = c.service.RemoveConfigFromGroup(group, key)
+	if err != nil {
+		return
+	}
 
 	renderJSON(w, "success Put")
 }
