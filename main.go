@@ -5,8 +5,14 @@ import (
 	"alati/model"
 	"alati/repo"
 	"alati/service"
+	"context"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -16,22 +22,44 @@ func main() {
 	serviceC := service.NewConfigService(repoC)
 	repoG := repo.NewConfigGroupInMemRepository()
 	serviceG := service.NewConfigGroupService(repoG)
+	h := handler.NewConfigHandler(serviceC)
+	hG := handler.NewConfigGroupHandler(serviceG, serviceC)
 
 	params := make(map[string]string)
 	params["username"] = "pera"
 	params["port"] = "5432"
+
 	config := model.Config{
 		Name:    "db_config",
 		Version: 2,
 		Params:  params,
 	}
-	serviceC.Add(config)
-	h := handler.NewConfigHandler(serviceC)
+	config2 := model.Config{
+		Name:    "db_config2",
+		Version: 3,
+		Params:  params,
+	}
 
-	hG := handler.NewConfigGruopHandler(serviceG)
+	configMap := make(map[string]model.Config)
+	configMap["conf1"] = config
+	configMap["conf2"] = config2
+
+	group := model.ConfigGroup{
+		Name:    "db_cg",
+		Version: 2,
+		Configs: configMap,
+	}
+
+	serviceC.Add(config2)
+	serviceC.Add(config)
+	serviceG.Add(group)
+
 	// }
 
 	router := mux.NewRouter()
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	router.HandleFunc("/configs/{name}/{version}", h.Get).Methods("GET")
 	router.HandleFunc("/configGroups/{name}/{version}", hG.Get).Methods("GET")
@@ -42,5 +70,25 @@ func main() {
 	router.HandleFunc("/configGroups/{nameG}/{versionG}/config/{nameC}/{versionC}", hG.AddConfToGroup).Methods("PUT")
 	router.HandleFunc("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", hG.RemoveConfFromGroup).Methods("PUT")
 
-	http.ListenAndServe("0.0.0.0:8000", router)
+	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
+
+	go func() {
+		log.Println("server_starting")
+		if err := srv.ListenAndServe(); err != nil {
+			if err != http.ErrServerClosed {
+				log.Fatal(err)
+			}
+		}
+	}()
+
+	<-quit
+
+	log.Println("service_shutting_down")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal(err)
+	}
+	log.Println(" server stopped")
 }
