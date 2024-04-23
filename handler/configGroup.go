@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
 	"mime"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type ConfigGroupHandler struct {
