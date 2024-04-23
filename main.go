@@ -6,13 +6,14 @@ import (
 	"alati/repo"
 	"alati/service"
 	"context"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
