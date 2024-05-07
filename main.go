@@ -7,6 +7,7 @@ import (
 	"alati/service"
 	"context"
 	"github.com/gorilla/mux"
+	"golang.org/x/time/rate"
 	"log"
 	"net/http"
 	"os"
@@ -57,18 +58,19 @@ func main() {
 	// }
 
 	router := mux.NewRouter()
+	limiter := rate.NewLimiter(0.167, 10)
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	router.HandleFunc("/configs/{name}/{version}", h.Get).Methods("GET")
-	router.HandleFunc("/configGroups/{name}/{version}", hG.Get).Methods("GET")
-	router.HandleFunc("/configs/", h.Add).Methods("POST")
-	router.HandleFunc("/configGroups/", hG.Add).Methods("POST")
-	router.HandleFunc("/configs/{name}/{version}", h.Delete).Methods("DELETE")
-	router.HandleFunc("/configGroups/{name}/{version}", hG.Delete).Methods("DELETE")
-	router.HandleFunc("/configGroups/{nameG}/{versionG}/config/{nameC}/{versionC}", hG.AddConfToGroup).Methods("PUT")
-	router.HandleFunc("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", hG.RemoveConfFromGroup).Methods("PUT")
+	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Get)).Methods(http.MethodGet)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Get)).Methods(http.MethodGet)
+	router.Handle("/configs/", handler.RateLimit(limiter, h.Add)).Methods(http.MethodPost)
+	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.Add)).Methods(http.MethodPost)
+	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Delete)).Methods(http.MethodDelete)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Delete)).Methods(http.MethodDelete)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{nameC}/{versionC}", handler.RateLimit(limiter, hG.AddConfToGroup)).Methods(http.MethodPut)
+	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.RemoveConfFromGroup)).Methods(http.MethodPut)
 
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 
