@@ -44,6 +44,7 @@ func (c ConfigGroupInMemRepository) AddConfigToGroup(group model.ConfigGroup, co
 }
 
 func (c ConfigGroupInMemRepository) RemoveConfigFromGroup(group model.ConfigGroup, key string) error {
+	fmt.Println(key)
 	delete(group.Configs, key)
 	return nil
 }

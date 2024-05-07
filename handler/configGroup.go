@@ -83,13 +83,6 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for _, value := range rt.Configs {
-		_, err := c.serviceConfig.Get(value.Name, value.Version)
-		if err != nil {
-			c.serviceConfig.Add(value)
-		}
-	}
-
 	c.service.Add(*rt)
 
 	renderJSON(w, rt)
