@@ -8,6 +8,7 @@ import (
 
 type ConfigGroupInMemRepository struct {
 	configs map[string]model.ConfigGroup
+	//configRepo model.ConfigRepository
 }
 
 func (c ConfigGroupInMemRepository) Add(config model.ConfigGroup) error {
@@ -46,6 +47,39 @@ func (c ConfigGroupInMemRepository) AddConfigToGroup(group model.ConfigGroup, co
 func (c ConfigGroupInMemRepository) RemoveConfigFromGroup(group model.ConfigGroup, key string) error {
 	fmt.Println(key)
 	delete(group.Configs, key)
+	return nil
+}
+
+func (c ConfigGroupInMemRepository) GetConfigsByLabels(group model.ConfigGroup, labels *map[string]string) ([]model.Config, error) {
+	var filteredConfigs []model.Config
+
+	for _, conf := range group.Configs {
+		for keyC, valueC := range conf.Labels {
+			for keyL, valueL := range *labels {
+				if keyC == keyL && valueC == valueL {
+					filteredConfigs = append(filteredConfigs, conf)
+				}
+			}
+		}
+	}
+
+	return filteredConfigs, nil
+}
+
+func (c ConfigGroupInMemRepository) DeleteConfigsByLabels(group model.ConfigGroup, labels *map[string]string) error {
+
+	for _, conf := range group.Configs {
+		for keyC, valueC := range conf.Labels {
+			for keyL, valueL := range *labels {
+				if keyC == keyL && valueC == valueL {
+					key := fmt.Sprintf("%s/%d", conf.Name, conf.Version)
+					//c.configRepo.Delete(conf.Name, conf.Version)
+					c.RemoveConfigFromGroup(group, key)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 

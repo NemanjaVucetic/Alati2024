@@ -12,4 +12,6 @@ type ConfigGroupRepository interface {
 	Delete(name string, version int) error
 	AddConfigToGroup(group ConfigGroup, config Config) error
 	RemoveConfigFromGroup(group ConfigGroup, key string) error
+	GetConfigsByLabels(group ConfigGroup, labels *map[string]string) ([]Config, error)
+	DeleteConfigsByLabels(group ConfigGroup, labels *map[string]string) error
 }

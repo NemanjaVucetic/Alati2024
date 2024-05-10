@@ -30,20 +30,29 @@ func main() {
 	params["username"] = "pera"
 	params["port"] = "5432"
 
+	labels := make(map[string]string)
+	labels["l1"] = "v1"
+	labels["l2"] = "v2"
+
+	labels2 := make(map[string]string)
+	labels2["l1"] = "v1"
+
 	config := model.Config{
 		Name:    "db_config",
 		Version: 2,
 		Params:  params,
+		Labels:  labels,
 	}
 	config2 := model.Config{
 		Name:    "db_config2",
 		Version: 3,
 		Params:  params,
+		Labels:  labels2,
 	}
 
 	configMap := make(map[string]model.Config)
-	configMap["conf1"] = config
-	configMap["conf2"] = config2
+	configMap["db_config/2"] = config
+	configMap["db_config2/3"] = config2
 
 	group := model.ConfigGroup{
 		Name:    "db_cg",
@@ -71,6 +80,8 @@ func main() {
 	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Delete)).Methods(http.MethodDelete)
 	router.Handle("/configGroups/{nameG}/{versionG}/config/{nameC}/{versionC}", handler.RateLimit(limiter, hG.AddConfToGroup)).Methods(http.MethodPut)
 	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.RemoveConfFromGroup)).Methods(http.MethodPut)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodPost)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPut)
 
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 
