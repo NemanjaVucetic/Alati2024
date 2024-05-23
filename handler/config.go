@@ -10,7 +10,6 @@ import (
 	"mime"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 type ConfigHandler struct {
@@ -47,7 +46,7 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 }
 
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
-	time.Sleep(9 * time.Second)
+	//time.Sleep(9 * time.Second)
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
 
