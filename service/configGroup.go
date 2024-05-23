@@ -47,3 +47,19 @@ func (s ConfigGroupService) RemoveConfigFromGroup(group model.ConfigGroup, key s
 	}
 	return nil
 }
+
+func (s ConfigGroupService) GetConfigsByLabels(group model.ConfigGroup, labels *map[string]string) ([]model.Config, error) {
+	configs, err := s.repo.GetConfigsByLabels(group, labels)
+	if err != nil {
+		return nil, err
+	}
+	return configs, nil
+}
+
+func (s ConfigGroupService) DeleteConfigsByLabels(group model.ConfigGroup, labels *map[string]string) error {
+	err := s.repo.DeleteConfigsByLabels(group, labels)
+	if err != nil {
+		return err
+	}
+	return nil
+}

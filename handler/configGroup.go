@@ -37,6 +37,17 @@ func decodeBodyCG(r io.Reader) (*model.ConfigGroup, error) {
 	return &rt, nil
 }
 
+func decodeBodyLabels(r io.Reader) (*map[string]string, error) {
+	dec := json.NewDecoder(r)
+	dec.DisallowUnknownFields()
+
+	var rt map[string]string
+	if err := dec.Decode(&rt); err != nil {
+		return nil, err
+	}
+	return &rt, nil
+}
+
 func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
@@ -166,4 +177,56 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	}
 
 	renderJSON(w, "success Put")
+}
+
+func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	version := mux.Vars(r)["version"]
+
+	versionInt, err := strconv.Atoi(version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	group, err := c.service.Get(name, versionInt)
+
+	labels, err := decodeBodyLabels(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	conf, err := c.service.GetConfigsByLabels(group, labels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, conf)
+}
+
+func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	version := mux.Vars(r)["version"]
+
+	versionInt, err := strconv.Atoi(version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	group, err := c.service.Get(name, versionInt)
+
+	labels, err := decodeBodyLabels(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = c.service.DeleteConfigsByLabels(group, labels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	renderJSON(w, "deleted")
 }
