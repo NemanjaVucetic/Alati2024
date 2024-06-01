@@ -6,23 +6,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/mux"
 	"io"
+	"log"
 	"mime"
 	"net/http"
-	"strconv"
-
-	"github.com/gorilla/mux"
+	"strings"
 )
 
 type ConfigGroupHandler struct {
 	service       service.ConfigGroupService
 	serviceConfig service.ConfigService
+	logger        *log.Logger
 }
 
-func NewConfigGroupHandler(service service.ConfigGroupService, serviceConfig service.ConfigService) ConfigGroupHandler {
+func NewConfigGroupHandler(service service.ConfigGroupService, serviceConfig service.ConfigService, logger *log.Logger) ConfigGroupHandler {
 	return ConfigGroupHandler{
 		service:       service,
 		serviceConfig: serviceConfig,
+		logger:        logger,
 	}
 }
 
@@ -52,13 +54,10 @@ func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
 
-	versionInt, err := strconv.Atoi(version)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	i := "configGroups/%s/%s"
+	id := fmt.Sprintf(i, name, version)
 
-	config, err := c.service.Get(name, versionInt)
+	config, err := c.service.Get(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -72,6 +71,18 @@ func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content−Type", "application/json")
 	w.Write(resp)
+}
+
+func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
+	allProducts, err := c.service.GetAll()
+
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		c.logger.Fatal("Database exception: ", err)
+	}
+
+	renderJSON(rw, allProducts)
+
 }
 
 func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
@@ -94,7 +105,7 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	c.service.Add(*rt)
+	c.service.Add(rt)
 
 	renderJSON(w, rt)
 }
@@ -102,15 +113,12 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
-	versionStr := vars["version"]
+	version := vars["version"]
 
-	version, err := strconv.Atoi(versionStr)
-	if err != nil {
-		http.Error(w, "Invalid version", http.StatusBadRequest)
-		return
-	}
+	i := "configGroups/%s/%s"
+	id := fmt.Sprintf(i, name, version)
 
-	err = c.service.Delete(name, version)
+	err := c.service.Delete(id)
 	if err != nil {
 		http.Error(w, "Failed to delete config group", http.StatusInternalServerError)
 		return
@@ -126,22 +134,16 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 	nameC := vars["nameC"]
 	versionCStr := vars["versionC"]
 
-	versionG, err := strconv.Atoi(versionGStr)
-	if err != nil {
-		http.Error(w, "Invalid version", http.StatusBadRequest)
-		return
-	}
+	groupString := "configGroups/%s/%s"
+	confString := "config/%s/%s"
 
-	versionC, err := strconv.Atoi(versionCStr)
-	if err != nil {
-		http.Error(w, "Invalid version", http.StatusBadRequest)
-		return
-	}
+	gStr := fmt.Sprintf(groupString, nameG, versionGStr)
+	cStr := fmt.Sprintf(confString, nameC, versionCStr)
 
-	group, _ := c.service.Get(nameG, versionG)
-	conf, _ := c.serviceConfig.Get(nameC, versionC)
+	group, _ := c.service.Get(gStr)
+	conf, _ := c.serviceConfig.Get(cStr)
 
-	err = c.service.AddConfigToGroup(group, conf)
+	err := c.service.AddConfigToGroup(*group, *conf)
 	if err != nil {
 		return
 	}
@@ -156,22 +158,16 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	nameC := vars["nameC"]
 	versionCStr := vars["versionC"]
 
-	versionG, err := strconv.Atoi(versionGStr)
-	if err != nil {
-		http.Error(w, "Invalid version", http.StatusBadRequest)
-		return
-	}
+	i := "configGroups/%s/%s"
+	id := fmt.Sprintf(i, nameG, versionGStr)
 
-	versionC, err := strconv.Atoi(versionCStr)
-	if err != nil {
-		http.Error(w, "Invalid version", http.StatusBadRequest)
-		return
-	}
+	t := "config/%s/%s"
+	idc := fmt.Sprintf(t, nameC, versionCStr)
 
-	key := fmt.Sprintf("%s/%d", nameC, versionC)
+	config, _ := c.serviceConfig.Get(idc)
+	group, _ := c.service.Get(id)
 
-	group, _ := c.service.Get(nameG, versionG)
-	err = c.service.RemoveConfigFromGroup(group, key)
+	err := c.service.RemoveConfigFromGroup(*group, *config)
 	if err != nil {
 		return
 	}
@@ -180,24 +176,28 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 }
 
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["name"]
-	version := mux.Vars(r)["version"]
+	vars := mux.Vars(r)
+	nameG := vars["nameG"]
+	versionG := vars["versionG"]
+	original := vars["labels"]
+	nameC := vars["nameC"]
+	versionC := vars["versionC"]
+	labels := strings.ReplaceAll(original, ";", "/")
 
-	versionInt, err := strconv.Atoi(version)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	prefixGroup := fmt.Sprintf("configGroups/%s/%s", nameG, versionG)
+	prefixConf := fmt.Sprintf("configGroups/%s/%s/config/%s", nameG, versionG, labels)
+
+	if labels == "" {
+		prefixConf = prefixGroup
+	}
+	if nameC != "" {
+		prefixConf = prefixConf + "/" + nameC
+	}
+	if versionC != "" {
+		prefixConf = prefixConf + "/" + versionC
 	}
 
-	group, err := c.service.Get(name, versionInt)
-
-	labels, err := decodeBodyLabels(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	conf, err := c.service.GetConfigsByLabels(group, labels)
+	conf, err := c.service.GetConfigsByLabels(prefixGroup, prefixConf)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -206,24 +206,28 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 }
 
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["name"]
-	version := mux.Vars(r)["version"]
+	vars := mux.Vars(r)
+	nameG := vars["nameG"]
+	versionG := vars["versionG"]
+	original := vars["labels"]
+	nameC := vars["nameC"]
+	versionC := vars["versionC"]
+	labels := strings.ReplaceAll(original, ";", "/")
 
-	versionInt, err := strconv.Atoi(version)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	prefixGroup := fmt.Sprintf("configGroups/%s/%s", nameG, versionG)
+	prefixConf := fmt.Sprintf("configGroups/%s/%s/config/%s", nameG, versionG, labels)
+
+	if labels == "" {
+		prefixConf = prefixGroup
+	}
+	if nameC != "" {
+		prefixConf = prefixConf + "/" + nameC
+	}
+	if versionC != "" {
+		prefixConf = prefixConf + "/" + versionC
 	}
 
-	group, err := c.service.Get(name, versionInt)
-
-	labels, err := decodeBodyLabels(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	err = c.service.DeleteConfigsByLabels(group, labels)
+	err := c.service.DeleteConfigsByLabels(prefixGroup, prefixConf)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

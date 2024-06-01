@@ -7,11 +7,12 @@ type ConfigGroup struct {
 }
 
 type ConfigGroupRepository interface {
-	Get(name string, version int) (ConfigGroup, error)
-	Add(c ConfigGroup) error
-	Delete(name string, version int) error
+	Get(id string) (*ConfigGroup, error)
+	GetAll() ([]ConfigGroup, error)
+	Put(c *ConfigGroup) (*ConfigGroup, error)
+	Delete(id string) error
 	AddConfigToGroup(group ConfigGroup, config Config) error
-	RemoveConfigFromGroup(group ConfigGroup, key string) error
-	GetConfigsByLabels(group ConfigGroup, labels *map[string]string) ([]Config, error)
-	DeleteConfigsByLabels(group ConfigGroup, labels *map[string]string) error
+	RemoveConfigFromGroup(group ConfigGroup, config Config) error
+	GetConfigsByLabels(prefixGroup string, prefixConf string) ([]Config, error)
+	DeleteConfigsByLabels(prefixGroup string, prefixConf string) error
 }

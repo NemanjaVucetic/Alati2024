@@ -19,16 +19,29 @@ import (
 func main() {
 
 	//test {
-	repoC := repo.NewConfigInMemRepository()
-	serviceC := service.NewConfigService(repoC)
-	repoG := repo.NewConfigGroupInMemRepository()
-	serviceG := service.NewConfigGroupService(repoG)
-	h := handler.NewConfigHandler(serviceC)
-	hG := handler.NewConfigGroupHandler(serviceG, serviceC)
+
+	logger := log.New(os.Stdout, "[config-api] ", log.LstdFlags)
+
+	repoC, err := repo.NewConfigRepo(logger)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	serviceC := service.NewConfigService(repoC, logger)
+
+	repoG, err := repo.NewConfigGroupRepo(logger)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	serviceG := service.NewConfigGroupService(repoG, logger)
+
+	h := handler.NewConfigHandler(serviceC, logger)
+	hG := handler.NewConfigGroupHandler(serviceG, serviceC, logger)
 
 	params := make(map[string]string)
-	params["username"] = "pera"
-	params["port"] = "5432"
+	params["param1"] = "param1"
+	params["param2"] = "param2"
 
 	labels := make(map[string]string)
 	labels["l1"] = "v1"
@@ -51,8 +64,8 @@ func main() {
 	}
 
 	configMap := make(map[string]model.Config)
-	configMap["db_config/2"] = config
-	configMap["db_config2/3"] = config2
+	configMap["configGroups/db_cg/2/config/l1:v1/l2:v2/db_config/2"] = config
+	configMap["configGroups/db_cg/2/config/l1:v1/db_config2/3"] = config2
 
 	group := model.ConfigGroup{
 		Name:    "db_cg",
@@ -60,9 +73,9 @@ func main() {
 		Configs: configMap,
 	}
 
-	serviceC.Add(config2)
-	serviceC.Add(config)
-	serviceG.Add(group)
+	serviceC.Add(&config2)
+	serviceC.Add(&config)
+	serviceG.Add(&group)
 
 	// }
 
@@ -73,21 +86,42 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Get)).Methods(http.MethodGet)
-	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Get)).Methods(http.MethodGet)
+	router.Handle("/configs/", handler.RateLimit(limiter, h.GetAll)).Methods(http.MethodGet)
 	router.Handle("/configs/", handler.RateLimit(limiter, h.Add)).Methods(http.MethodPost)
-	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.Add)).Methods(http.MethodPost)
 	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Delete)).Methods(http.MethodDelete)
-	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Delete)).Methods(http.MethodDelete)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{nameC}/{versionC}", handler.RateLimit(limiter, hG.AddConfToGroup)).Methods(http.MethodPut)
-	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.RemoveConfFromGroup)).Methods(http.MethodPut)
-	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodPost)
-	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPut)
+	router.Handle("/configs/", handler.RateLimit(limiter, h.DeleteAll)).Methods(http.MethodDelete)
 
-	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
+	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.GetAll)).Methods(http.MethodGet)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Get)).Methods(http.MethodGet)
+	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.Add)).Methods(http.MethodPost)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Delete)).Methods(http.MethodDelete)
+	router.Handle("/configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC}", handler.RateLimit(limiter, hG.AddConfToGroup)).Methods(http.MethodPut)
+	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.RemoveConfFromGroup)).Methods(http.MethodPut)
+
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
+
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
+
+	port := os.Getenv("PORT")
+	if len(port) == 0 {
+		port = "8080"
+	}
+
+	server := http.Server{
+		Addr:         ":" + port,        // Addr optionally specifies the TCP address for the server to listen on, in the form "host:port". If empty, ":http" (port 80) is used.
+		Handler:      router,            // handler to invoke, http.DefaultServeMux if nil
+		IdleTimeout:  120 * time.Second, // IdleTimeout is the maximum amount of time to wait for the next request when keep-alives are enabled.
+		ReadTimeout:  1 * time.Second,   // ReadTimeout is the maximum duration for reading the entire request, including the body. A zero or negative value means there will be no timeout.
+		WriteTimeout: 1 * time.Second,   // WriteTimeout is the maximum duration before timing out writes of the response.
+	}
 
 	go func() {
 		log.Println("server_starting")
-		if err := srv.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
 				log.Fatal(err)
 			}
@@ -100,7 +134,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := server.Shutdown(ctx); err != nil {
 		log.Fatal(err)
 	}
 	log.Println(" server stopped")
