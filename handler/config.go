@@ -5,20 +5,23 @@ import (
 	"alati/service"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"io"
+	"log"
 	"mime"
 	"net/http"
-	"strconv"
 )
 
 type ConfigHandler struct {
 	service service.ConfigService
+	logger  *log.Logger
 }
 
-func NewConfigHandler(service service.ConfigService) ConfigHandler {
+func NewConfigHandler(service service.ConfigService, logger *log.Logger) ConfigHandler {
 	return ConfigHandler{
 		service: service,
+		logger:  logger,
 	}
 }
 
@@ -50,13 +53,10 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
 
-	versionInt, err := strconv.Atoi(version)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	i := "config/%s/%s"
+	id := fmt.Sprintf(i, name, version)
 
-	config, err := c.service.Get(name, versionInt)
+	config, err := c.service.Get(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -70,6 +70,18 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content−Type", "application/json")
 	w.Write(resp)
+}
+
+func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
+	allProducts, err := c.service.GetAll()
+
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		c.logger.Fatal("Database exception: ", err)
+	}
+
+	renderJSON(rw, allProducts)
+
 }
 
 func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
@@ -92,27 +104,40 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	c.service.Add(*rt)
+	config, err := c.service.Add(rt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	renderJSON(w, rt)
+	renderJSON(w, config)
 }
 
 func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
-	versionStr := vars["version"]
+	version := vars["version"]
 
-	version, err := strconv.Atoi(versionStr)
-	if err != nil {
-		http.Error(w, "Invalid version", http.StatusBadRequest)
-		return
-	}
+	i := "config/%s/%s"
+	id := fmt.Sprintf(i, name, version)
 
-	err = c.service.Delete(name, version)
+	err := c.service.Delete(id)
 	if err != nil {
 		http.Error(w, "Failed to delete config", http.StatusInternalServerError)
 		return
 	}
 
 	renderJSON(w, "Deleted")
+}
+
+func (c ConfigHandler) DeleteAll(rw http.ResponseWriter, h *http.Request) {
+
+	err := c.service.DeleteAll()
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		c.logger.Fatal("Database exception:", err)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
 }

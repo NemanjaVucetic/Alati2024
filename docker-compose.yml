@@ -11,8 +11,8 @@ services:
       context: .
       dockerfile: Dockerfile-multistage
     restart: always
-    container_name: "product-server"
-    hostname: "product-server"
+    container_name: "config-server"
+    hostname: "config-server"
     #Mapping ports
     ports:
       # <port_on_local>:<port_in_machine>

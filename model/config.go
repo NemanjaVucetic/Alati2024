@@ -8,7 +8,9 @@ type Config struct {
 }
 
 type ConfigRepository interface {
-	Get(name string, version int) (Config, error)
-	Add(c Config)
-	Delete(name string, version int) error
+	Get(id string) (*Config, error)
+	GetAll() ([]Config, error)
+	Put(c *Config) (*Config, error)
+	Delete(id string) error
+	DeleteAll() error
 }
