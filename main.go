@@ -100,12 +100,10 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Get)).Methods(http.MethodGet)
-	router.Handle("/configs/", handler.RateLimit(limiter, h.GetAll)).Methods(http.MethodGet)
 	router.Handle("/configs/", handler.RateLimit(limiter, h.Add)).Methods(http.MethodPost)
 	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Delete)).Methods(http.MethodDelete)
 	router.Handle("/configs/", handler.RateLimit(limiter, h.DeleteAll)).Methods(http.MethodDelete)
 
-	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.GetAll)).Methods(http.MethodGet)
 	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Get)).Methods(http.MethodGet)
 	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.Add)).Methods(http.MethodPost)
 	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Delete)).Methods(http.MethodDelete)
@@ -123,7 +121,7 @@ func main() {
 
 	go func() {
 		log.Println("server_starting")
-		if err := server.ListenAndServe(); err != nil {
+		if err := srv.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
 				log.Fatal(err)
 			}
@@ -136,7 +134,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal(err)
 	}
 	log.Println(" server stopped")
