@@ -5,11 +5,12 @@ import (
 	"alati/service"
 	"encoding/json"
 	"errors"
-	"github.com/gorilla/mux"
 	"io"
 	"mime"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type ConfigHandler struct {
@@ -45,8 +46,18 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 	w.Write(js)
 }
 
+// Get retrieves a configuration by name and version
+// swagger:route GET /configs/{name}/{version} Config getConfig
+//
+// Retrieves a configuration by name and version.
+//
+// Responses:
+//
+//		200: Config
+//		400: BadRequest
+//		404: NotFound
+//	 500: InternalServerError
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
-	//time.Sleep(9 * time.Second)
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
 
@@ -68,10 +79,22 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content−Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
 }
 
+// Add creates a new configuration
+// swagger:route POST /configs Config addConfig
+//
+// Creates a new configuration.
+//
+// Consumes:
+// - application/json
+//
+// Responses:
+//
+//	201: Config
+//	400: BadRequest
 func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -97,6 +120,16 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 	renderJSON(w, rt)
 }
 
+// Delete removes a configuration by name and version
+// swagger:route DELETE /configs/{name}/{version} Config deleteConfig
+//
+// Removes a configuration by name and version.
+//
+// Responses:
+//
+//	200: string
+//	400: BadRequest
+//	500: InternalServerError
 func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]

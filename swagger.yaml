@@ -1,0 +1,131 @@
+basePath: /
+info:
+    description: 'Title: Alati2024'
+    title: Alati2024
+    version: 0.0.1
+paths:
+    /config-groups:
+        post:
+            consumes:
+                - application/json
+            operationId: addConfigGroup
+            responses:
+                "201":
+                    $ref: '#/responses/ConfigGroup'
+                "400":
+                    $ref: '#/responses/BadRequest'
+            summary: Creates a new configuration group.
+            tags:
+                - ConfigGroup
+    /config-groups/{name}/{version}:
+        delete:
+            operationId: deleteConfigGroup
+            responses:
+                "200":
+                    $ref: '#/responses/string'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Removes a configuration group by name and version.
+            tags:
+                - ConfigGroup
+        get:
+            operationId: getConfigGroup
+            responses:
+                "200":
+                    $ref: '#/responses/ConfigGroup'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "404":
+                    $ref: '#/responses/NotFound'
+            summary: Retrieves a configuration group by name and version.
+            tags:
+                - ConfigGroup
+    /config-groups/{name}/{version}/labels:
+        delete:
+            operationId: deleteConfigsByLabels
+            responses:
+                "200":
+                    $ref: '#/responses/string'
+                "400":
+                    $ref: '#/responses/BadRequest'
+            summary: Deletes configurations from a configuration group by labels.
+            tags:
+                - ConfigGroup
+        post:
+            operationId: getConfigsByLabels
+            responses:
+                "200":
+                    $ref: '#/responses/Config'
+                "400":
+                    $ref: '#/responses/BadRequest'
+            summary: Retrieves configurations from a configuration group by labels.
+            tags:
+                - ConfigGroup
+    /config-groups/{nameG}/{versionG}/configs/{nameC}/{versionC}:
+        delete:
+            operationId: removeConfigFromGroup
+            responses:
+                "200":
+                    $ref: '#/responses/string'
+                "400":
+                    $ref: '#/responses/BadRequest'
+            summary: Removes a configuration from a configuration group by key.
+            tags:
+                - ConfigGroup
+        post:
+            operationId: addConfigToGroup
+            responses:
+                "200":
+                    $ref: '#/responses/string'
+                "400":
+                    $ref: '#/responses/BadRequest'
+            summary: Adds a configuration to a configuration group.
+            tags:
+                - ConfigGroup
+    /configs:
+        post:
+            consumes:
+                - application/json
+            operationId: addConfig
+            responses:
+                "201":
+                    $ref: '#/responses/Config'
+                "400":
+                    $ref: '#/responses/BadRequest'
+            summary: Creates a new configuration.
+            tags:
+                - Config
+    /configs/{name}/{version}:
+        delete:
+            operationId: deleteConfig
+            responses:
+                "200":
+                    $ref: '#/responses/string'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Removes a configuration by name and version.
+            tags:
+                - Config
+        get:
+            operationId: getConfig
+            responses:
+                "200":
+                    $ref: '#/responses/Config'
+                "400":
+                    $ref: '#/responses/BadRequest'
+                "404":
+                    $ref: '#/responses/NotFound'
+                "500":
+                    $ref: '#/responses/InternalServerError'
+            summary: Retrieves a configuration by name and version.
+            tags:
+                - Config
+produces:
+    - application/json
+schemes:
+    - http
+swagger: "2.0"

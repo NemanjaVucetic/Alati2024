@@ -1,3 +1,15 @@
+// Alati2024
+//
+//	Title: Alati2024
+//
+//	Schemes: http
+//	Version: 0.0.1
+//	BasePath: /
+//
+//	Produces:
+//	  - application/json
+//
+// swagger:meta
 package main
 
 import (
@@ -6,14 +18,16 @@ import (
 	"alati/repo"
 	"alati/service"
 	"context"
-	"github.com/gorilla/mux"
-	"golang.org/x/time/rate"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/gorilla/mux"
+	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -82,6 +96,11 @@ func main() {
 	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.RemoveConfFromGroup)).Methods(http.MethodPut)
 	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodPost)
 	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPut)
+
+	// SwaggerUI
+	optionsDevelopers := middleware.SwaggerUIOpts{SpecURL: "swagger.yaml"}
+	developerDocumentationHandler := middleware.SwaggerUI(optionsDevelopers, nil)
+	router.Handle("/docs", developerDocumentationHandler)
 
 	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 
