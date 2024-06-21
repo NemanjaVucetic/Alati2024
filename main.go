@@ -1,3 +1,15 @@
+// Alati2024
+//
+//	Title: Alati2024
+//
+//	Schemes: http
+//	Version: 0.0.1
+//	BasePath: /
+//
+//	Produces:
+//	  - application/json
+//
+// swagger:meta
 package main
 
 import (
@@ -6,14 +18,16 @@ import (
 	"alati/repo"
 	"alati/service"
 	"context"
-	"github.com/gorilla/mux"
-	"golang.org/x/time/rate"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/gorilla/mux"
+	"golang.org/x/time/rate"
 )
 
 func main() {
@@ -97,27 +111,15 @@ func main() {
 	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Delete)).Methods(http.MethodDelete)
 	router.Handle("/configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC}", handler.RateLimit(limiter, hG.AddConfToGroup)).Methods(http.MethodPut)
 	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.RemoveConfFromGroup)).Methods(http.MethodPut)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodPost)
+	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPut)
 
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
+	// SwaggerUI
+	optionsDevelopers := middleware.SwaggerUIOpts{SpecURL: "swagger.yaml"}
+	developerDocumentationHandler := middleware.SwaggerUI(optionsDevelopers, nil)
+	router.Handle("/docs", developerDocumentationHandler)
 
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
-
-	port := os.Getenv("PORT")
-	if len(port) == 0 {
-		port = "8080"
-	}
-
-	server := http.Server{
-		Addr:         ":" + port,        // Addr optionally specifies the TCP address for the server to listen on, in the form "host:port". If empty, ":http" (port 80) is used.
-		Handler:      router,            // handler to invoke, http.DefaultServeMux if nil
-		IdleTimeout:  120 * time.Second, // IdleTimeout is the maximum amount of time to wait for the next request when keep-alives are enabled.
-		ReadTimeout:  1 * time.Second,   // ReadTimeout is the maximum duration for reading the entire request, including the body. A zero or negative value means there will be no timeout.
-		WriteTimeout: 1 * time.Second,   // WriteTimeout is the maximum duration before timing out writes of the response.
-	}
+	srv := &http.Server{Addr: "0.0.0.0:8000", Handler: router}
 
 	go func() {
 		log.Println("server_starting")

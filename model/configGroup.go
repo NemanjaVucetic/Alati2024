@@ -1,8 +1,17 @@
 package model
 
+// swagger:model ConfigGroup
 type ConfigGroup struct {
-	Name    string            `json:"name"`
-	Version int               `json:"version"`
+	// Name of the configuration group
+	// in: string
+	Name string `json:"name"`
+
+	// Version of the configuration group
+	// in: int
+	Version int `json:"version"`
+
+	// Configurations in the group
+	// in: map[string]Config
 	Configs map[string]Config `json:"configs"`
 }
 

@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 type ConfigGroupHandler struct {
@@ -50,6 +52,16 @@ func decodeBodyLabels(r io.Reader) (*map[string]string, error) {
 	return &rt, nil
 }
 
+// Get retrieves a configuration group by name and version
+// swagger:route GET /config-groups/{name}/{version} ConfigGroup getConfigGroup
+//
+// Retrieves a configuration group by name and version.
+//
+// Responses:
+//
+//	200: ConfigGroup
+//	400: BadRequest
+//	404: NotFound
 func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
@@ -69,22 +81,22 @@ func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content−Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(resp)
 }
 
-func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
-	allProducts, err := c.service.GetAll()
-
-	if err != nil {
-		http.Error(rw, "Database exception", http.StatusInternalServerError)
-		c.logger.Fatal("Database exception: ", err)
-	}
-
-	renderJSON(rw, allProducts)
-
-}
-
+// Add creates a new configuration group
+// swagger:route POST /config-groups ConfigGroup addConfigGroup
+//
+// Creates a new configuration group.
+//
+// Consumes:
+// - application/json
+//
+// Responses:
+//
+//	201: ConfigGroup
+//	400: BadRequest
 func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -110,6 +122,16 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 	renderJSON(w, rt)
 }
 
+// Delete removes a configuration group by name and version
+// swagger:route DELETE /config-groups/{name}/{version} ConfigGroup deleteConfigGroup
+//
+// Removes a configuration group by name and version.
+//
+// Responses:
+//
+//	200: string
+//	400: BadRequest
+//	500: InternalServerError
 func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
@@ -127,6 +149,15 @@ func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, "Deleted")
 }
 
+// AddConfToGroup adds a configuration to a configuration group
+// swagger:route POST /config-groups/{nameG}/{versionG}/configs/{nameC}/{versionC} ConfigGroup addConfigToGroup
+//
+// Adds a configuration to a configuration group.
+//
+// Responses:
+//
+//	200: string
+//	400: BadRequest
 func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -145,11 +176,22 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 
 	err := c.service.AddConfigToGroup(*group, *conf)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	renderJSON(w, "success Put")
 }
+
+// RemoveConfFromGroup removes a configuration from a configuration group by key
+// swagger:route DELETE /config-groups/{nameG}/{versionG}/configs/{nameC}/{versionC} ConfigGroup removeConfigFromGroup
+//
+// Removes a configuration from a configuration group by key.
+//
+// Responses:
+//
+//	200: string
+//	400: BadRequest
 
 func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -169,12 +211,22 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 
 	err := c.service.RemoveConfigFromGroup(*group, *config)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	renderJSON(w, "success Put")
 }
 
+// GetConfigsByLabels retrieves configurations from a configuration group by labels
+// swagger:route POST /config-groups/{name}/{version}/labels ConfigGroup getConfigsByLabels
+//
+// Retrieves configurations from a configuration group by labels.
+//
+// Responses:
+//
+//	200: []Config
+//	400: BadRequest
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -205,26 +257,35 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 	renderJSON(w, conf)
 }
 
+// DeleteConfigsByLabels deletes configurations from a configuration group by labels
+// swagger:route DELETE /config-groups/{name}/{version}/labels ConfigGroup deleteConfigsByLabels
+//
+// Deletes configurations from a configuration group by labels.
+//
+// Responses:
+//
+//	200: string
+//	400: BadRequest
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	nameG := vars["nameG"]
-	versionG := vars["versionG"]
-	original := vars["labels"]
-	nameC := vars["nameC"]
-	versionC := vars["versionC"]
-	labels := strings.ReplaceAll(original, ";", "/")
+	name := mux.Vars(r)["name"]
+	version := mux.Vars(r)["version"]
 
-	prefixGroup := fmt.Sprintf("configGroups/%s/%s", nameG, versionG)
-	prefixConf := fmt.Sprintf("configGroups/%s/%s/config/%s", nameG, versionG, labels)
+	versionInt, err := strconv.Atoi(version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	if labels == "" {
-		prefixConf = prefixGroup
+	group, err := c.service.Get(name, versionInt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
 	}
-	if nameC != "" {
-		prefixConf = prefixConf + "/" + nameC
-	}
-	if versionC != "" {
-		prefixConf = prefixConf + "/" + versionC
+
+	labels, err := decodeBodyLabels(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	err := c.service.DeleteConfigsByLabels(prefixGroup, prefixConf)
@@ -232,5 +293,6 @@ func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	renderJSON(w, "deleted")
 }
