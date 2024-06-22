@@ -91,9 +91,9 @@ func main() {
 		Configs: configMap,
 	}
 
-	serviceC.Add(&config2)
-	serviceC.Add(&config)
-	serviceG.Add(&group)
+	serviceC.Add(&config2, "npclord1")
+	serviceC.Add(&config, "npclord2")
+	serviceG.Add(&group, "npcgod1")
 
 	// }
 

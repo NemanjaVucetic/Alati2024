@@ -25,8 +25,8 @@ func (s ConfigService) GetAll() ([]model.Config, error) {
 	return s.repo.GetAll()
 }
 
-func (s ConfigService) Add(c *model.Config) (*model.Config, error) {
-	put, err := s.repo.Put(c)
+func (s ConfigService) Add(c *model.Config, id string) (*model.Config, error) {
+	put, err := s.repo.Put(c, id)
 	if err != nil {
 		return nil, err
 	}

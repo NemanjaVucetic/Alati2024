@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"mime"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 type ConfigGroupHandler struct {
@@ -116,6 +117,7 @@ func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
 // @Router /configGroups/ [post]
 func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
+	idempotency_key := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 
 	if err != nil {
@@ -134,7 +136,17 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	c.service.Add(rt)
+	group, err := c.service.Add(rt, idempotency_key)
+
+	if group == nil {
+		http.Error(w, "Idempotency protection", http.StatusForbidden)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	renderJSON(w, rt)
 }
@@ -183,6 +195,8 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 	nameC := vars["nameC"]
 	versionCStr := vars["versionC"]
 
+	idempotency_key := r.Header.Get("idempotency-key")
+
 	groupString := "configGroups/%s/%s"
 	confString := "config/%s/%s"
 
@@ -192,7 +206,11 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 	group, _ := c.service.Get(gStr)
 	conf, _ := c.serviceConfig.Get(cStr)
 
-	err := c.service.AddConfigToGroup(*group, *conf)
+	group, err := c.service.AddConfigToGroup(*group, *conf, idempotency_key)
+	if group == nil {
+		http.Error(w, "Idempotency protection", http.StatusForbidden)
+		return
+	}
 	if err != nil {
 		return
 	}
@@ -218,6 +236,8 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	nameC := vars["nameC"]
 	versionCStr := vars["versionC"]
 
+	idempotency_key := r.Header.Get("idempotency-key")
+
 	i := "configGroups/%s/%s"
 	id := fmt.Sprintf(i, nameG, versionGStr)
 
@@ -227,7 +247,13 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	config, _ := c.serviceConfig.Get(idc)
 	group, _ := c.service.Get(id)
 
-	err := c.service.RemoveConfigFromGroup(*group, *config)
+	group, err := c.service.RemoveConfigFromGroup(*group, *config, idempotency_key)
+
+	if group == nil {
+		http.Error(w, "Idempotency protection", http.StatusForbidden)
+		return
+	}
+
 	if err != nil {
 		return
 	}

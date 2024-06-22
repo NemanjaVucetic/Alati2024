@@ -4,11 +4,12 @@ import (
 	"alati/model"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/api"
 )
 
 type ConfigGroupRepo struct {
@@ -74,8 +75,16 @@ func (conf *ConfigGroupRepo) GetAll() ([]model.ConfigGroup, error) {
 	return configs, nil
 }
 
-func (conf *ConfigGroupRepo) Put(c *model.ConfigGroup) (*model.ConfigGroup, error) {
+func (conf *ConfigGroupRepo) Put(c *model.ConfigGroup, id string) (*model.ConfigGroup, error) {
 	kv := conf.cli.KV()
+	value, _, err := kv.Get(id, nil)
+	if value == nil {
+		idReal, _ := json.Marshal(id)
+		confKeyValue := &api.KVPair{Key: id, Value: idReal}
+		kv.Put(confKeyValue, nil)
+	} else {
+		return nil, nil
+	}
 
 	data, err := json.Marshal(c)
 	if err != nil {
@@ -102,27 +111,48 @@ func (conf *ConfigGroupRepo) Delete(id string) error {
 	return nil
 }
 
-func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config model.Config) error {
+func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string) (*model.ConfigGroup, error) {
+	kv := conf.cli.KV()
+	value, _, _ := kv.Get(id, nil)
+	if value == nil {
+		idReal, _ := json.Marshal(id)
+		confKeyValue := &api.KVPair{Key: id, Value: idReal}
+		kv.Put(confKeyValue, nil)
+	} else {
+		return nil, nil
+
+	}
+
 	key := constructKeyInGroup(group, config)
 	group.Configs[key] = config
 
-	_, err := conf.Put(&group)
+	groupa, err := conf.Put(&group, id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return groupa, nil
 }
-func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config) error {
+func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string) (*model.ConfigGroup, error) {
+	kv := conf.cli.KV()
+	value, _, _ := kv.Get(id, nil)
+	if value == nil {
+		idReal, _ := json.Marshal(id)
+		confKeyValue := &api.KVPair{Key: id, Value: idReal}
+		kv.Put(confKeyValue, nil)
+	} else {
+		return nil, nil
+
+	}
 	key := constructKeyInGroup(group, config)
 	delete(group.Configs, key)
 
-	_, err := conf.Put(&group)
+	groupa, err := conf.Put(&group, id)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return groupa, nil
 }
 
 func (conf *ConfigGroupRepo) GetConfigsByLabels(prefixGroup string, prefixConf string) ([]model.Config, error) {
