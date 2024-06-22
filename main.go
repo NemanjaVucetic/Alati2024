@@ -1,20 +1,38 @@
 package main
 
 import (
+	_ "alati/docs"
 	"alati/handler"
 	"alati/model"
 	"alati/repo"
 	"alati/service"
 	"context"
-	"github.com/gorilla/mux"
-	"golang.org/x/time/rate"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
+	"golang.org/x/time/rate"
 )
+
+//	@title			Configuration API
+//	@version		1.0
+//	@description	This is a sample server for a configuration service.
+//	@termsOfService	http://swagger.io/terms/
+
+//	@contact.name	API Support
+//	@contact.url	http://www.swagger.io/support
+//	@contact.email	support@swagger.io
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+//	@host		localhost:8080
+//	@BasePath	/
 
 func main() {
 
@@ -86,10 +104,9 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Get)).Methods(http.MethodGet)
-	router.Handle("/configs/", handler.RateLimit(limiter, h.GetAll)).Methods(http.MethodGet)
 	router.Handle("/configs/", handler.RateLimit(limiter, h.Add)).Methods(http.MethodPost)
+	router.Handle("/configs/", handler.RateLimit(limiter, h.GetAll)).Methods(http.MethodGet)
 	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Delete)).Methods(http.MethodDelete)
-	router.Handle("/configs/", handler.RateLimit(limiter, h.DeleteAll)).Methods(http.MethodDelete)
 
 	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.GetAll)).Methods(http.MethodGet)
 	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Get)).Methods(http.MethodGet)
@@ -105,6 +122,10 @@ func main() {
 	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
 	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
 	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
+
+	// Swagger documentation route
+	// http://localhost:8080/swagger/index.html#/
+	router.PathPrefix("/swagger").Handler(httpSwagger.WrapHandler)
 
 	port := os.Getenv("PORT")
 	if len(port) == 0 {

@@ -50,6 +50,17 @@ func decodeBodyLabels(r io.Reader) (*map[string]string, error) {
 	return &rt, nil
 }
 
+// @Summary Get a configuration group
+// @Description Retrieves a configuration group by name and version
+// @Tags configGroups
+// @Produce json
+// @Param name path string true "Name of the configuration group"
+// @Param version path int true "Version of the configuration group"
+// @Success 200 {object} model.ConfigGroup
+// @Failure 400 {string} string "Invalid input"
+// @Failure 404 {string} string "Configuration group not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/{name}/{version} [get]
 func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
@@ -73,6 +84,13 @@ func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// @Summary Get all configuration groups
+// @Description Retrieves all configuration groups
+// @Tags configGroups
+// @Produce json
+// @Success 200 {array} model.ConfigGroup
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/ [get]
 func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
 	allProducts, err := c.service.GetAll()
 
@@ -85,6 +103,17 @@ func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
 
 }
 
+// @Summary Add a new configuration group
+// @Description Adds a new configuration group
+// @Tags configGroups
+// @Accept json
+// @Produce json
+// @Param configGroup body model.ConfigGroup true "Configuration group to add"
+// @Success 201 {object} model.ConfigGroup
+// @Failure 400 {string} string "Invalid input"
+// @Failure 415 {string} string "Unsupported media type"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/ [post]
 func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -110,6 +139,15 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 	renderJSON(w, rt)
 }
 
+// @Summary Delete a configuration group
+// @Description Deletes a configuration group by name and version
+// @Tags configGroups
+// @Produce json
+// @Param name path string true "Name of the configuration group"
+// @Param version path int true "Version of the configuration group"
+// @Success 200 {string} string "Deleted"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/{name}/{version} [delete]
 func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
@@ -127,6 +165,17 @@ func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, "Deleted")
 }
 
+// @Summary Add a configuration to a group
+// @Description Adds a configuration to a group by their names and versions
+// @Tags configGroups
+// @Produce json
+// @Param nameG path string true "Name of the configuration group"
+// @Param versionG path int true "Version of the configuration group"
+// @Param nameC path string true "Name of the configuration"
+// @Param versionC path int true "Version of the configuration"
+// @Success 200 {string} string "success Put"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC} [put]
 func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -151,6 +200,17 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 	renderJSON(w, "success Put")
 }
 
+// @Summary Remove a configuration from a group
+// @Description Removes a configuration from a group by their names and versions
+// @Tags configGroups
+// @Produce json
+// @Param nameG path string true "Name of the configuration group"
+// @Param versionG path int true "Version of the configuration group"
+// @Param nameC path string true "Name of the configuration"
+// @Param versionC path int true "Version of the configuration"
+// @Success 200 {string} string "success Put"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC} [put]
 func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -175,6 +235,19 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	renderJSON(w, "success Put")
 }
 
+// @Summary Get configurations by labels
+// @Description Retrieves configurations by labels within a group
+// @Tags configGroups
+// @Produce json
+// @Param nameG path string true "Name of the configuration group"
+// @Param versionG path int true "Version of the configuration group"
+// @Param labels path string true "Labels of the configuration"
+// @Param nameC path string false "Name of the configuration"
+// @Param versionC path int false "Version of the configuration"
+// @Success 200 {object} []model.Config
+// @Failure 400 {string} string "Invalid input"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/{nameG}/{versionG}/configs/{labels}/{nameC}/{versionC} [get]
 func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -205,6 +278,19 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 	renderJSON(w, conf)
 }
 
+// @Summary Delete configurations by labels
+// @Description Deletes configurations by labels within a group
+// @Tags configGroups
+// @Produce json
+// @Param nameG path string true "Name of the configuration group"
+// @Param versionG path int true "Version of the configuration group"
+// @Param labels path string true "Labels of the configuration"
+// @Param nameC path string false "Name of the configuration"
+// @Param versionC path int false "Version of the configuration"
+// @Success 200 {string} string "deleted"
+// @Failure 400 {string} string "Invalid input"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configGroups/{nameG}/{versionG}/configs/{labels}/{nameC}/{versionC} [patch]
 func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
