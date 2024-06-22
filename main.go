@@ -103,25 +103,28 @@ func main() {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Get)).Methods(http.MethodGet)
-	router.Handle("/configs/", handler.RateLimit(limiter, h.Add)).Methods(http.MethodPost)
-	router.Handle("/configs/", handler.RateLimit(limiter, h.GetAll)).Methods(http.MethodGet)
-	router.Handle("/configs/{name}/{version}", handler.RateLimit(limiter, h.Delete)).Methods(http.MethodDelete)
+	router.Handle("/configs/{name}/{version}", count(handler.RateLimit(limiter, http.HandlerFunc(h.Get)))).Methods(http.MethodGet)
+	router.Handle("/configs/", count(handler.RateLimit(limiter, http.HandlerFunc(h.Add)))).Methods(http.MethodPost)
+	router.Handle("/configs/", count(handler.RateLimit(limiter, http.HandlerFunc(h.GetAll)))).Methods(http.MethodGet)
+	router.Handle("/configs/{name}/{version}", count(handler.RateLimit(limiter, http.HandlerFunc(h.Delete)))).Methods(http.MethodDelete)
 
-	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.GetAll)).Methods(http.MethodGet)
-	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Get)).Methods(http.MethodGet)
-	router.Handle("/configGroups/", handler.RateLimit(limiter, hG.Add)).Methods(http.MethodPost)
-	router.Handle("/configGroups/{name}/{version}", handler.RateLimit(limiter, hG.Delete)).Methods(http.MethodDelete)
-	router.Handle("/configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC}", handler.RateLimit(limiter, hG.AddConfToGroup)).Methods(http.MethodPut)
-	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.RemoveConfFromGroup)).Methods(http.MethodPut)
+	router.Handle("/configGroups/", count(handler.RateLimit(limiter, http.HandlerFunc(hG.GetAll)))).Methods(http.MethodGet)
+	router.Handle("/configGroups/{name}/{version}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.Get)))).Methods(http.MethodGet)
+	router.Handle("/configGroups/", count(handler.RateLimit(limiter, http.HandlerFunc(hG.Add)))).Methods(http.MethodPost)
+	router.Handle("/configGroups/{name}/{version}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.Delete)))).Methods(http.MethodDelete)
+	router.Handle("/configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.AddConfToGroup)))).Methods(http.MethodPut)
+	router.Handle("/configGroups/{nameG}/{versionG}/{nameC}/{versionC}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.RemoveConfFromGroup)))).Methods(http.MethodPut)
 
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.GetConfigsByLabels)).Methods(http.MethodGet)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.GetConfigsByLabels)))).Methods(http.MethodGet)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.GetConfigsByLabels)))).Methods(http.MethodGet)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.GetConfigsByLabels)))).Methods(http.MethodGet)
 
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
-	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", handler.RateLimit(limiter, hG.DeleteConfigsByLabels)).Methods(http.MethodPatch)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.DeleteConfigsByLabels)))).Methods(http.MethodPatch)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.DeleteConfigsByLabels)))).Methods(http.MethodPatch)
+	router.Handle("/configGroups/{nameG}/{versionG}/config/{labels}/{nameC}/{versionC}", count(handler.RateLimit(limiter, http.HandlerFunc(hG.DeleteConfigsByLabels)))).Methods(http.MethodPatch)
+
+	// Metrics endpoint
+	router.Handle("/metrics", metricsHandler()).Methods(http.MethodGet)
 
 	// Swagger documentation route
 	// http://localhost:8080/swagger/index.html#/
