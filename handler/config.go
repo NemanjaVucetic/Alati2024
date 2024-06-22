@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"mime"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type ConfigHandler struct {
@@ -48,6 +49,17 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 	w.Write(js)
 }
 
+// @Summary Get a configuration
+// @Description Retrieves a configuration by name and version
+// @Tags configs
+// @Produce json
+// @Param name path string true "Name of the configuration"
+// @Param version path int true "Version of the configuration"
+// @Success 200 {object} model.Config
+// @Failure 400 {string} string "Invalid input"
+// @Failure 404 {string} string "Configuration not found"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configs/{name}/{version} [get]
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	//time.Sleep(9 * time.Second)
 	name := mux.Vars(r)["name"]
@@ -72,6 +84,13 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
+// @Summary Get all configurations
+// @Description Retrieves all configurations
+// @Tags configs
+// @Produce json
+// @Success 200 {array} model.Config
+// @Failure 500 {string} string "Internal server error"
+// @Router /configs/ [get]
 func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
 	allProducts, err := c.service.GetAll()
 
@@ -84,6 +103,17 @@ func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
 
 }
 
+// @Summary Add a new configuration
+// @Description Adds a new configuration
+// @Tags configs
+// @Accept json
+// @Produce json
+// @Param config body model.Config true "Configuration to add"
+// @Success 201 {object} model.Config
+// @Failure 400 {string} string "Invalid input"
+// @Failure 415 {string} string "Unsupported media type"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configs/ [post]
 func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -113,6 +143,15 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 	renderJSON(w, config)
 }
 
+// @Summary Delete a configuration
+// @Description Deletes a configuration by name and version
+// @Tags configs
+// @Produce json
+// @Param name path string true "Name of the configuration"
+// @Param version path int true "Version of the configuration"
+// @Success 200 {string} string "Deleted"
+// @Failure 500 {string} string "Internal server error"
+// @Router /configs/{name}/{version} [delete]
 func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	name := vars["name"]
