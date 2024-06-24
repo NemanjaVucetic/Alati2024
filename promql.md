@@ -5,18 +5,18 @@
 
 ## Primeri
 
-### Broj obradjenih HTTP zahteva
+### Broj obradjenih HTTP zahteva u poslednjih 24
 
-    my_app_http_hit_total
+    increase(my_app_http_hit_total[24h])
 
-### Broj odgovora sa status kodom 404
+### Broj uspesnih zahteva
 
-    response_status{status="404"}
+    sum(increase(response_status_total{status=~"2..|3.."}[24h]))
 
-### Broj GET zahteva po sekundi, za prethodnih 5 minuta
+### Broj nuuspesnih zahteva
 
-    rate(http_method{method="GET"}[5m])
+    sum(rate(response_status_count{status=~"4..|5.."}[24h]))
 
 ### Prosecno vreme izvrsavanja zahteva za svaki endpoint
 
-    http_response_time_sum / http_response_time_count
+    histogram_quantile(0.95, sum(rate(http_response_time_bucket[24h])) by (le, endpoint))
