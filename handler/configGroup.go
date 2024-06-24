@@ -137,18 +137,17 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 	}
 
 	group, err := c.service.Add(rt, idempotency_key)
-
-	if group == nil {
-		http.Error(w, "Idempotency protection", http.StatusForbidden)
-		return
-	}
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	renderJSON(w, rt)
+	if group == nil && err == nil {
+		http.Error(w, "Idempotency protection", http.StatusForbidden)
+		return
+	}
+
+	renderJSON(w, group)
 }
 
 // @Summary Delete a configuration group
@@ -194,9 +193,7 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 	versionGStr := vars["versionG"]
 	nameC := vars["nameC"]
 	versionCStr := vars["versionC"]
-
 	idempotency_key := r.Header.Get("idempotency-key")
-
 	groupString := "configGroups/%s/%s"
 	confString := "config/%s/%s"
 
@@ -206,11 +203,7 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 	group, _ := c.service.Get(gStr)
 	conf, _ := c.serviceConfig.Get(cStr)
 
-	group, err := c.service.AddConfigToGroup(*group, *conf, idempotency_key)
-	if group == nil {
-		http.Error(w, "Idempotency protection", http.StatusForbidden)
-		return
-	}
+	err := c.service.AddConfigToGroup(*group, *conf, idempotency_key)
 	if err != nil {
 		return
 	}
@@ -235,9 +228,7 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	versionGStr := vars["versionG"]
 	nameC := vars["nameC"]
 	versionCStr := vars["versionC"]
-
 	idempotency_key := r.Header.Get("idempotency-key")
-
 	i := "configGroups/%s/%s"
 	id := fmt.Sprintf(i, nameG, versionGStr)
 
@@ -247,13 +238,7 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 	config, _ := c.serviceConfig.Get(idc)
 	group, _ := c.service.Get(id)
 
-	group, err := c.service.RemoveConfigFromGroup(*group, *config, idempotency_key)
-
-	if group == nil {
-		http.Error(w, "Idempotency protection", http.StatusForbidden)
-		return
-	}
-
+	err := c.service.RemoveConfigFromGroup(*group, *config, idempotency_key)
 	if err != nil {
 		return
 	}

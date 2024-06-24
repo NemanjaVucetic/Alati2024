@@ -20,8 +20,8 @@ type ConfigGroupRepository interface {
 	GetAll() ([]ConfigGroup, error)
 	Put(c *ConfigGroup, id string) (*ConfigGroup, error)
 	Delete(id string) error
-	AddConfigToGroup(group ConfigGroup, config Config, id string) (*ConfigGroup, error)
-	RemoveConfigFromGroup(group ConfigGroup, config Config, id string) (*ConfigGroup, error)
+	AddConfigToGroup(group ConfigGroup, config Config, id string) error
+	RemoveConfigFromGroup(group ConfigGroup, config Config, id string) error
 	GetConfigsByLabels(prefixGroup string, prefixConf string) ([]Config, error)
 	DeleteConfigsByLabels(prefixGroup string, prefixConf string) error
 }
