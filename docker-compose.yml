@@ -1,0 +1,45 @@
+version: "3.1"
+
+services:
+  # Our service.
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile-multistage
+    restart: always
+    container_name: "config-server"
+    hostname: "config-server"
+    ports:
+      - 8080:8080
+    environment:
+      - PORT=8080
+      - DB=consul
+      - DBPORT=8500
+    depends_on:
+      - consul
+
+  # Prometheus service for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  # NoSQL: Consul
+  consul:
+    image: hashicorp/consul:latest
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0"
+    volumes:
+      - ./cosnul_store:/consul/data
+
+volumes:
+  consul:
+  prometheus-data:
