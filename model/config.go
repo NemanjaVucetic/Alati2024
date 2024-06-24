@@ -21,7 +21,7 @@ type Config struct {
 type ConfigRepository interface {
 	Get(id string) (*Config, error)
 	GetAll() ([]Config, error)
-	Put(c *Config) (*Config, error)
+	Put(c *Config, id string) (*Config, error)
 	Delete(id string) error
 	DeleteAll() error
 }

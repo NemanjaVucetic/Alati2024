@@ -26,12 +26,12 @@ func (s ConfigGroupService) Get(id string) (*model.ConfigGroup, error) {
 	return s.repo.Get(id)
 }
 
-func (s ConfigGroupService) Add(c *model.ConfigGroup) error {
-	_, err := s.repo.Put(c)
+func (s ConfigGroupService) Add(c *model.ConfigGroup, id string) (*model.ConfigGroup, error) {
+	group, err := s.repo.Put(c, id)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return group, nil
 }
 
 func (s ConfigGroupService) Delete(id string) error {
@@ -42,16 +42,16 @@ func (s ConfigGroupService) Delete(id string) error {
 	return nil
 }
 
-func (s ConfigGroupService) AddConfigToGroup(group model.ConfigGroup, config model.Config) error {
-	err := s.repo.AddConfigToGroup(group, config)
+func (s ConfigGroupService) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string) error {
+	err := s.repo.AddConfigToGroup(group, config, id)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s ConfigGroupService) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config) error {
-	err := s.repo.RemoveConfigFromGroup(group, config)
+func (s ConfigGroupService) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string) error {
+	err := s.repo.RemoveConfigFromGroup(group, config, id)
 	if err != nil {
 		return err
 	}

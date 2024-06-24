@@ -4,10 +4,11 @@ import (
 	"alati/model"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"log"
 	"os"
 	"strconv"
+
+	"github.com/hashicorp/consul/api"
 )
 
 type ConfigRepo struct {
@@ -73,8 +74,21 @@ func (conf *ConfigRepo) GetAll() ([]model.Config, error) {
 	return configs, nil
 }
 
-func (conf *ConfigRepo) Put(c *model.Config) (*model.Config, error) {
+func (conf *ConfigRepo) Put(c *model.Config, id string) (*model.Config, error) {
 	kv := conf.cli.KV()
+	value, _, err := kv.Get(id, nil)
+	if value == nil {
+		idReal, _ := json.Marshal(id)
+		confKeyValue := &api.KVPair{Key: id, Value: idReal}
+		kv.Put(confKeyValue, nil)
+	} else {
+		return nil, nil
+
+	}
+
+	if err != nil {
+		return nil, err
+	}
 
 	data, err := json.Marshal(c)
 	if err != nil {
