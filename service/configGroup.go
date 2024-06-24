@@ -27,11 +27,11 @@ func (s ConfigGroupService) Get(id string) (*model.ConfigGroup, error) {
 }
 
 func (s ConfigGroupService) Add(c *model.ConfigGroup, id string) (*model.ConfigGroup, error) {
-	c, err := s.repo.Put(c, id)
+	group, err := s.repo.Put(c, id)
 	if err != nil {
-		return c, err
+		return nil, err
 	}
-	return nil, nil
+	return group, nil
 }
 
 func (s ConfigGroupService) Delete(id string) error {
@@ -42,20 +42,20 @@ func (s ConfigGroupService) Delete(id string) error {
 	return nil
 }
 
-func (s ConfigGroupService) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string) (*model.ConfigGroup, error) {
-	groupa, err := s.repo.AddConfigToGroup(group, config, id)
+func (s ConfigGroupService) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string) error {
+	err := s.repo.AddConfigToGroup(group, config, id)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return groupa, nil
+	return nil
 }
 
-func (s ConfigGroupService) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string) (*model.ConfigGroup, error) {
-	groupa, err := s.repo.RemoveConfigFromGroup(group, config, id)
+func (s ConfigGroupService) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string) error {
+	err := s.repo.RemoveConfigFromGroup(group, config, id)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return groupa, nil
+	return nil
 }
 
 func (s ConfigGroupService) GetConfigsByLabels(prefixGroup string, prefixConf string) ([]model.Config, error) {

@@ -111,48 +111,27 @@ func (conf *ConfigGroupRepo) Delete(id string) error {
 	return nil
 }
 
-func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string) (*model.ConfigGroup, error) {
-	kv := conf.cli.KV()
-	value, _, _ := kv.Get(id, nil)
-	if value == nil {
-		idReal, _ := json.Marshal(id)
-		confKeyValue := &api.KVPair{Key: id, Value: idReal}
-		kv.Put(confKeyValue, nil)
-	} else {
-		return nil, nil
-
-	}
-
+func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string) error {
 	key := constructKeyInGroup(group, config)
 	group.Configs[key] = config
 
-	groupa, err := conf.Put(&group, id)
+	_, err := conf.Put(&group, id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return groupa, nil
+	return nil
 }
-func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string) (*model.ConfigGroup, error) {
-	kv := conf.cli.KV()
-	value, _, _ := kv.Get(id, nil)
-	if value == nil {
-		idReal, _ := json.Marshal(id)
-		confKeyValue := &api.KVPair{Key: id, Value: idReal}
-		kv.Put(confKeyValue, nil)
-	} else {
-		return nil, nil
-
-	}
+func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string) error {
 	key := constructKeyInGroup(group, config)
 	delete(group.Configs, key)
 
-	groupa, err := conf.Put(&group, id)
+	_, err := conf.Put(&group, id)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return groupa, nil
+	return nil
 }
 
 func (conf *ConfigGroupRepo) GetConfigsByLabels(prefixGroup string, prefixConf string) ([]model.Config, error) {
