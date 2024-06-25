@@ -3,6 +3,7 @@ package handler
 import (
 	"alati/model"
 	"alati/service"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,17 +13,21 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ConfigHandler struct {
 	service service.ConfigService
 	logger  *log.Logger
+	Tracer  trace.Tracer
 }
 
-func NewConfigHandler(service service.ConfigService, logger *log.Logger) ConfigHandler {
+func NewConfigHandler(service service.ConfigService, logger *log.Logger, tracer trace.Tracer) ConfigHandler {
 	return ConfigHandler{
 		service: service,
 		logger:  logger,
+		Tracer:  tracer,
 	}
 }
 
@@ -60,7 +65,10 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 // @Failure 404 {string} string "Configuration not found"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/{name}/{version} [get]
-func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
+func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "GetConfig")
+	defer span.End()
+
 	//time.Sleep(9 * time.Second)
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
@@ -68,14 +76,16 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	i := "config/%s/%s"
 	id := fmt.Sprintf(i, name, version)
 
-	config, err := c.service.Get(id)
+	config, err := c.service.Get(id, ctx)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	resp, err := json.Marshal(config)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -91,8 +101,10 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} model.Config
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/ [get]
-func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
-	allProducts, err := c.service.GetAll()
+func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "GetAllConfigs")
+	defer span.End()
+	allProducts, err := c.service.GetAll(ctx)
 
 	if err != nil {
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
@@ -115,7 +127,9 @@ func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
 // @Failure 415 {string} string "Unsupported media type"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/ [post]
-func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
+func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "AddConfig")
+	defer span.End()
 	contentType := req.Header.Get("Content-Type")
 	idempotency_key := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
@@ -136,7 +150,7 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	config, err := c.service.Add(rt, idempotency_key)
+	config, err := c.service.Add(rt, idempotency_key, ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -159,7 +173,9 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 // @Success 200 {string} string "Deleted"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/{name}/{version} [delete]
-func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "DeleteConfig")
+	defer span.End()
 	vars := mux.Vars(r)
 	name := vars["name"]
 	version := vars["version"]
@@ -167,7 +183,7 @@ func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	i := "config/%s/%s"
 	id := fmt.Sprintf(i, name, version)
 
-	err := c.service.Delete(id)
+	err := c.service.Delete(id, ctx)
 	if err != nil {
 		http.Error(w, "Failed to delete config", http.StatusInternalServerError)
 		return
@@ -176,9 +192,10 @@ func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, "Deleted")
 }
 
-func (c ConfigHandler) DeleteAll(rw http.ResponseWriter, h *http.Request) {
-
-	err := c.service.DeleteAll()
+func (c ConfigHandler) DeleteAll(rw http.ResponseWriter, h *http.Request, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "DeleteAllConfigs")
+	defer span.End()
+	err := c.service.DeleteAll(ctx)
 	if err != nil {
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
 		c.logger.Fatal("Database exception:", err)

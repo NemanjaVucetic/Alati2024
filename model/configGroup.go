@@ -1,5 +1,7 @@
 package model
 
+import "context"
+
 // swagger:model ConfigGroup
 type ConfigGroup struct {
 	// Name of the configuration group
@@ -16,12 +18,12 @@ type ConfigGroup struct {
 }
 
 type ConfigGroupRepository interface {
-	Get(id string) (*ConfigGroup, error)
-	GetAll() ([]ConfigGroup, error)
-	Put(c *ConfigGroup, id string) (*ConfigGroup, error)
-	Delete(id string) error
-	AddConfigToGroup(group ConfigGroup, config Config, id string) error
-	RemoveConfigFromGroup(group ConfigGroup, config Config, id string) error
-	GetConfigsByLabels(prefixGroup string, prefixConf string) ([]Config, error)
-	DeleteConfigsByLabels(prefixGroup string, prefixConf string) error
+	Get(id string, ctx context.Context) (*ConfigGroup, error)
+	GetAll(ctx context.Context) ([]ConfigGroup, error)
+	Put(c *ConfigGroup, id string, ctx context.Context) (*ConfigGroup, error)
+	Delete(id string, ctx context.Context) error
+	AddConfigToGroup(group ConfigGroup, config Config, id string, ctx context.Context) error
+	RemoveConfigFromGroup(group ConfigGroup, config Config, id string, ctx context.Context) error
+	GetConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) ([]Config, error)
+	DeleteConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) error
 }
