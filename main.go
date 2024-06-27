@@ -41,7 +41,7 @@ import (
 // @BasePath	/
 
 func main() {
-	//aaaaaa
+
 	cfg := GetConfiguration()
 
 	// Initialize OpenTelemetry
