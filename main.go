@@ -151,6 +151,9 @@ func main() {
 	// http://localhost:8080/swagger/index.html#/
 	router.PathPrefix("/swagger").Handler(httpSwagger.WrapHandler)
 
+	getAllHandler := router.Get("/configs/").GetHandler()
+	log.Printf("Handler for /configs/ endpoint: %v\n", getAllHandler)
+
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "8080"
