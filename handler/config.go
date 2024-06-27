@@ -116,6 +116,7 @@ func (c *ConfigHandler) GetAll(rw http.ResponseWriter, r *http.Request) {
 		c.logger.Fatal("Database exception: ", err)
 	}
 
+	rw.WriteHeader(http.StatusOK)
 	c.renderJSON(rw, allProducts, ctx)
 
 }
