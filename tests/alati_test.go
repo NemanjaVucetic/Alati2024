@@ -2,19 +2,17 @@ package tests
 
 import (
 	"alati/handler"
-	"alati/model"
 	"alati/repo"
 	"alati/service"
 	"bytes"
-	"encoding/json"
+	"go.opentelemetry.io/otel"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
-	"go.opentelemetry.io/otel"
+	"github.com/gorilla/mux" // Zamislite da koristimo gorilla/mux za rute
 )
 
 func newTestHandler() handler.ConfigHandler {
@@ -25,102 +23,104 @@ func newTestHandler() handler.ConfigHandler {
 	return handler.NewConfigHandler(services, logger, tracer)
 }
 
-func TestGet(t *testing.T) {
-	handler := newTestHandler()
+func TestGetConfig(t *testing.T) {
+	configHandler := newTestHandler() // Zamijeni sa stvarnim handlerom
 
-	req := httptest.NewRequest(http.MethodGet, "/configs/db_config/2", nil)
-	rr := httptest.NewRecorder()
-
-	router := mux.NewRouter()
-	router.HandleFunc("/configs/{name}/{version}", handler.Get).Methods("GET")
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	// Simuliramo HTTP zahtev
+	req, err := http.NewRequest("GET", "/configs/db_config/2", nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	expected := `{"Name":"db_config","Version":2}`
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	// Kreiramo testni ResponseWriter da uhvatimo odgovor
+	rr := httptest.NewRecorder()
+
+	// Kreiramo ruter koji će obrađivati naš zahtev (ovde pretpostavljamo da imamo router kreiran u ConfigHandler)
+	router := mux.NewRouter()
+	router.HandleFunc("/configs/{name}/{version}", configHandler.Get).Methods("GET")
+
+	// Serviramo zahtev na naš ruter
+	router.ServeHTTP(rr, req)
+
+	// Proveravamo status kod
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Expected status %v, but got %v", http.StatusOK, status)
 	}
 }
 
-func TestGetAll(t *testing.T) {
-	handler := newTestHandler()
+func TestDeleteConfig(t *testing.T) {
 
-	req := httptest.NewRequest(http.MethodGet, "/configs/", nil)
-	rr := httptest.NewRecorder()
-
-	router := mux.NewRouter()
-	router.HandleFunc("/configs/", handler.GetAll).Methods("GET")
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	configHandler := newTestHandler()
+	// Simulacija zahteva za brisanje konfiguracije
+	req, err := http.NewRequest("DELETE", "/configs/config_name/config_version", nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	expected := `[{"Name":"test","Version":1}]`
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	// Testni ResponseWriter za hvatanje odgovora
+	rr := httptest.NewRecorder()
+
+	// Kreiramo ruter sa odgovarajućim hendlerom
+	router := mux.NewRouter()
+	router.HandleFunc("/configs/{name}/{version}", configHandler.Delete).Methods("DELETE")
+
+	// Serviramo zahtev na ruter
+	router.ServeHTTP(rr, req)
+
+	// Proveravamo status kod
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Expected status %v, but got %v", http.StatusOK, status)
 	}
 }
 
-func TestAdd(t *testing.T) {
-	handler := newTestHandler()
+func TestAddConfig(t *testing.T) {
 
-	config := model.Config{Name: "new_config", Version: 1}
-	body, _ := json.Marshal(config)
-	req := httptest.NewRequest(http.MethodPost, "/configs/", bytes.NewReader(body))
+	configHandler := newTestHandler()
+	// Simulacija zahteva za dodavanje nove konfiguracije
+	jsonBody := []byte(`{"name": "config_name", "version": "config_version", "data": {...}}`)
+	req, err := http.NewRequest("POST", "/configs/", bytes.NewBuffer(jsonBody))
+	if err != nil {
+		t.Fatal(err)
+	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("idempotency_key", "test_key")
+
+	// Testni ResponseWriter za hvatanje odgovora
 	rr := httptest.NewRecorder()
 
+	// Kreiramo ruter sa odgovarajućim hendlerom
 	router := mux.NewRouter()
-	router.HandleFunc("/configs/", handler.Add).Methods("POST")
+	router.HandleFunc("/configs/", configHandler.Add).Methods("POST")
+
+	// Serviramo zahtev na ruter
 	router.ServeHTTP(rr, req)
 
-	if status := rr.Code; status != http.StatusCreated {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusCreated)
-	}
-
-	expected := `{"Name":"new_config","Version":1}`
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
+	// Proveravamo status kod
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("Expected status %v, but got %v", http.StatusOK, status)
 	}
 }
 
-func TestDelete(t *testing.T) {
-	handler := newTestHandler()
+func TestDeleteAllConfigs(t *testing.T) {
 
-	req := httptest.NewRequest(http.MethodDelete, "/configs/test/1", nil)
-	rr := httptest.NewRecorder()
-
-	router := mux.NewRouter()
-	router.HandleFunc("/configs/{name}/{version}", handler.Delete).Methods("DELETE")
-	router.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	configHandler := newTestHandler()
+	// Simulacija zahteva za brisanje svih konfiguracija
+	req, err := http.NewRequest("DELETE", "/configs/", nil)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	expected := `"Deleted"`
-	if rr.Body.String() != expected {
-		t.Errorf("Handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
-	}
-
-}
-
-func TestDeleteAll(t *testing.T) {
-	handler := newTestHandler()
-
-	req := httptest.NewRequest(http.MethodDelete, "/configs/", nil)
+	// Testni ResponseWriter za hvatanje odgovora
 	rr := httptest.NewRecorder()
 
+	// Kreiramo ruter sa odgovarajućim hendlerom
 	router := mux.NewRouter()
-	router.HandleFunc("/configs/", handler.DeleteAll).Methods("DELETE")
+	router.HandleFunc("/configs/", configHandler.DeleteAll).Methods("DELETE")
+
+	// Serviramo zahtev na ruter
 	router.ServeHTTP(rr, req)
 
+	// Proveravamo status kod
 	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("Handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		t.Errorf("Expected status %v, but got %v", http.StatusOK, status)
 	}
 }

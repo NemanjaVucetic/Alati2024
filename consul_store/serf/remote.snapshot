@@ -1,2 +1,3 @@
 alive: server-1.dc1 172.25.0.4:8302
 alive: server-1.dc1 172.26.0.3:8302
+alive: server-1.dc1 172.26.0.3:8302
