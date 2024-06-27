@@ -1,5 +1,7 @@
 package model
 
+import "context"
+
 // swagger:model Config
 type Config struct {
 	// Name of the configuration
@@ -19,9 +21,11 @@ type Config struct {
 	Labels map[string]string `json:"labels"`
 }
 type ConfigRepository interface {
-	Get(id string) (*Config, error)
-	GetAll() ([]Config, error)
-	Put(c *Config) (*Config, error)
-	Delete(id string) error
-	DeleteAll() error
+
+	Get(id string, ctx context.Context) (*Config, error)
+	GetAll(ctx context.Context) ([]Config, error)
+	Put(c *Config, id string, ctx context.Context) (*Config, error)
+	Delete(id string, ctx context.Context) error
+	DeleteAll(ctx context.Context) error
+
 }

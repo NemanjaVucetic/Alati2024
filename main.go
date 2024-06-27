@@ -16,46 +16,66 @@ import (
 
 	"github.com/gorilla/mux"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"golang.org/x/time/rate"
 )
 
-//	@title			Configuration API
-//	@version		1.0
-//	@description	This is a sample server for a configuration service.
-//	@termsOfService	http://swagger.io/terms/
+// @title			Configuration API
+// @version		1.0
+// @description	This is a sample server for a configuration service.
+// @termsOfService	http://swagger.io/terms/
 
-//	@contact.name	API Support
-//	@contact.url	http://www.swagger.io/support
-//	@contact.email	support@swagger.io
+// @contact.name	API Support
+// @contact.url	http://www.swagger.io/support
+// @contact.email	support@swagger.io
 
-//	@license.name	Apache 2.0
-//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+// @license.name	Apache 2.0
+// @license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
-//	@host		localhost:8080
-//	@BasePath	/
+// @host		localhost:8080
+// @BasePath	/
 
 func main() {
 
-	//test {
+	cfg := GetConfiguration()
+
+	// Initialize OpenTelemetry
+	ctx := context.Background()
+	exp, err := newExporter(cfg.JaegerEndpoint)
+	if err != nil {
+		log.Fatalf("failed to initialize exporter: %v", err)
+	}
+
+	tp := newTraceProvider(exp)
+	defer func() { _ = tp.Shutdown(ctx) }()
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+	tracer := tp.Tracer("config-service")
 
 	logger := log.New(os.Stdout, "[config-api] ", log.LstdFlags)
 
-	repoC, err := repo.NewConfigRepo(logger)
+	repoC, err := repo.NewConfigRepo(logger, tracer)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	serviceC := service.NewConfigService(repoC, logger)
+	serviceC := service.NewConfigService(repoC, logger, tracer)
 
-	repoG, err := repo.NewConfigGroupRepo(logger)
+	repoG, err := repo.NewConfigGroupRepo(logger, tracer)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	serviceG := service.NewConfigGroupService(repoG, logger)
+	serviceG := service.NewConfigGroupService(repoG, logger, tracer)
 
-	h := handler.NewConfigHandler(serviceC, logger)
-	hG := handler.NewConfigGroupHandler(serviceG, serviceC, logger)
+	h := handler.NewConfigHandler(serviceC, logger, tracer)
+	hG := handler.NewConfigGroupHandler(serviceG, serviceC, logger, tracer)
 
 	params := make(map[string]string)
 	params["param1"] = "param1"
@@ -74,6 +94,7 @@ func main() {
 		Params:  params,
 		Labels:  labels,
 	}
+
 	config2 := model.Config{
 		Name:    "db_config2",
 		Version: 3,
@@ -91,9 +112,11 @@ func main() {
 		Configs: configMap,
 	}
 
-	serviceC.Add(&config2)
-	serviceC.Add(&config)
-	serviceG.Add(&group)
+
+	serviceC.Add(&config2, "npclord1", ctx)
+	serviceC.Add(&config, "npclord2", ctx)
+	serviceG.Add(&group, "npcgod1", ctx)
+
 
 	// }
 
@@ -161,5 +184,25 @@ func main() {
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatal(err)
 	}
-	log.Println(" server stopped")
+	log.Println("server stopped")
+}
+
+func newExporter(address string) (sdktrace.SpanExporter, error) {
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(address)))
+	if err != nil {
+		return nil, err
+	}
+	return exp, nil
+}
+
+func newTraceProvider(exp sdktrace.SpanExporter) *sdktrace.TracerProvider {
+	r := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String("config-service"),
+	)
+
+	return sdktrace.NewTracerProvider(
+		sdktrace.WithSyncer(exp),
+		sdktrace.WithResource(r),
+	)
 }

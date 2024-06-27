@@ -3,6 +3,7 @@ package handler
 import (
 	"alati/model"
 	"alati/service"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,32 +13,41 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ConfigHandler struct {
 	service service.ConfigService
 	logger  *log.Logger
+	Tracer  trace.Tracer
 }
 
-func NewConfigHandler(service service.ConfigService, logger *log.Logger) ConfigHandler {
+func NewConfigHandler(service service.ConfigService, logger *log.Logger, tracer trace.Tracer) ConfigHandler {
 	return ConfigHandler{
 		service: service,
 		logger:  logger,
+		Tracer:  tracer,
 	}
 }
 
-func decodeBody(r io.Reader) (*model.Config, error) {
+func (c *ConfigHandler) decodeBody(r io.Reader, ctx context.Context) (config *model.Config, cont context.Context, err error) {
+	cont, span := c.Tracer.Start(ctx, "decodeBody")
+	defer span.End()
+
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
 	var rt model.Config
 	if err := dec.Decode(&rt); err != nil {
-		return nil, err
+		return nil, cont, err
 	}
-	return &rt, nil
+	return &rt, cont, nil
 }
 
-func renderJSON(w http.ResponseWriter, v interface{}) {
+func (c *ConfigHandler) renderJSON(w http.ResponseWriter, v interface{}, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "renderJSON")
+	defer span.End()
 	js, err := json.Marshal(v)
 
 	if err != nil {
@@ -61,6 +71,9 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/{name}/{version} [get]
 func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.GetConfig")
+	defer span.End()
+
 	//time.Sleep(9 * time.Second)
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
@@ -68,14 +81,16 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 	i := "config/%s/%s"
 	id := fmt.Sprintf(i, name, version)
 
-	config, err := c.service.Get(id)
+	config, err := c.service.Get(id, ctx)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	resp, err := json.Marshal(config)
 	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -91,15 +106,17 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} model.Config
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/ [get]
-func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
-	allProducts, err := c.service.GetAll()
+func (c *ConfigHandler) GetAll(rw http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.GetAllConfig")
+	defer span.End()
+	allProducts, err := c.service.GetAll(ctx)
 
 	if err != nil {
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
 		c.logger.Fatal("Database exception: ", err)
 	}
 
-	renderJSON(rw, allProducts)
+	c.renderJSON(rw, allProducts, ctx)
 
 }
 
@@ -115,6 +132,8 @@ func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/ [post]
 func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
+	ctx, span := c.Tracer.Start(req.Context(), "h.AddConfig")
+	defer span.End()
 	contentType := req.Header.Get("Content-Type")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 
@@ -128,19 +147,27 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	rt, err := decodeBody(req.Body)
+	rt, cont, err := c.decodeBody(req.Body, ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	config, err := c.service.Add(rt)
+
+	config, err := c.service.Add(rt, idempotency_key, cont)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	renderJSON(w, config)
+
+	if config == nil && err == nil {
+		http.Error(w, "Idempotency protection", http.StatusForbidden)
+		return
+	}
+
+	c.renderJSON(w, config, cont)
+
 }
 
 // @Summary Delete a configuration
@@ -153,6 +180,8 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/{name}/{version} [delete]
 func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.DeleteConfig")
+	defer span.End()
 	vars := mux.Vars(r)
 	name := vars["name"]
 	version := vars["version"]
@@ -160,18 +189,19 @@ func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	i := "config/%s/%s"
 	id := fmt.Sprintf(i, name, version)
 
-	err := c.service.Delete(id)
+	err := c.service.Delete(id, ctx)
 	if err != nil {
 		http.Error(w, "Failed to delete config", http.StatusInternalServerError)
 		return
 	}
 
-	renderJSON(w, "Deleted")
+	c.renderJSON(w, "Deleted", ctx)
 }
 
-func (c ConfigHandler) DeleteAll(rw http.ResponseWriter, h *http.Request) {
-
-	err := c.service.DeleteAll()
+func (c ConfigHandler) DeleteAll(rw http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.DeleteAllConfigs")
+	defer span.End()
+	err := c.service.DeleteAll(ctx)
 	if err != nil {
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
 		c.logger.Fatal("Database exception:", err)
