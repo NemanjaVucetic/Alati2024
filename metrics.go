@@ -32,7 +32,7 @@ var (
 
 	httpStatusCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "response_status",
+			Name: "response_status_count",
 			Help: "Status of the HTTP response.",
 		},
 		[]string{"status"})
@@ -46,7 +46,7 @@ var (
 
 	httpResponseTimeSeconds = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "http_response_time",
+			Name: "http_response_time_bucket",
 			Help: "Duration of the HTTP request.",
 		},
 		[]string{"endpoint"})

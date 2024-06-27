@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/api"
 	"log"
 	"os"
 	"strconv"
 
+
 	"github.com/hashicorp/consul/api"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+
 )
 
 type ConfigRepo struct {
@@ -88,6 +91,7 @@ func (conf *ConfigRepo) GetAll(ctx context.Context) ([]model.Config, error) {
 	return configs, nil
 }
 
+
 func (conf *ConfigRepo) Put(c *model.Config, id string, ctx context.Context) (*model.Config, error) {
 	_, span := conf.Tracer.Start(ctx, "r.AddConfig")
 	defer span.End()
@@ -106,6 +110,7 @@ func (conf *ConfigRepo) Put(c *model.Config, id string, ctx context.Context) (*m
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
 	}
+
 
 	data, err := json.Marshal(c)
 	if err != nil {

@@ -128,7 +128,6 @@ func (c *ConfigHandler) GetAll(rw http.ResponseWriter, r *http.Request) {
 // @Param config body model.Config true "Configuration to add"
 // @Success 201 {object} model.Config
 // @Failure 400 {string} string "Invalid input"
-// @Failure 403 {string} string "Idempotentcy protection"
 // @Failure 415 {string} string "Unsupported media type"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/ [post]
@@ -136,7 +135,6 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 	ctx, span := c.Tracer.Start(req.Context(), "h.AddConfig")
 	defer span.End()
 	contentType := req.Header.Get("Content-Type")
-	idempotency_key := req.Header.Get("idempotency-key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 
 	if err != nil {
@@ -155,11 +153,13 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+
 	config, err := c.service.Add(rt, idempotency_key, cont)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 
 	if config == nil && err == nil {
 		http.Error(w, "Idempotency protection", http.StatusForbidden)
@@ -167,6 +167,7 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 	}
 
 	c.renderJSON(w, config, cont)
+
 }
 
 // @Summary Delete a configuration

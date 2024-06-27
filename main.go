@@ -112,9 +112,11 @@ func main() {
 		Configs: configMap,
 	}
 
+
 	serviceC.Add(&config2, "npclord1", ctx)
 	serviceC.Add(&config, "npclord2", ctx)
 	serviceG.Add(&group, "npcgod1", ctx)
+
 
 	// }
 

@@ -18,6 +18,7 @@ type ConfigGroup struct {
 }
 
 type ConfigGroupRepository interface {
+
 	Get(id string, ctx context.Context) (*ConfigGroup, error)
 	GetAll(ctx context.Context) ([]ConfigGroup, error)
 	Put(c *ConfigGroup, id string, ctx context.Context) (*ConfigGroup, error)
@@ -26,4 +27,5 @@ type ConfigGroupRepository interface {
 	RemoveConfigFromGroup(group ConfigGroup, config Config, id string, ctx context.Context) error
 	GetConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) ([]Config, error)
 	DeleteConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) error
+
 }

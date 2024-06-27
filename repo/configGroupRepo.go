@@ -5,14 +5,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/api"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
+
 	"github.com/hashicorp/consul/api"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+
 )
 
 type ConfigGroupRepo struct {
@@ -91,15 +94,8 @@ func (conf *ConfigGroupRepo) GetAll(ctx context.Context) ([]model.ConfigGroup, e
 func (conf *ConfigGroupRepo) Put(c *model.ConfigGroup, id string, ctx context.Context) (*model.ConfigGroup, error) {
 	_, span := conf.Tracer.Start(ctx, "r.AddConfig")
 	defer span.End()
+
 	kv := conf.cli.KV()
-	value, _, err := kv.Get(id, nil)
-	if value == nil {
-		idReal, _ := json.Marshal(id)
-		confKeyValue := &api.KVPair{Key: id, Value: idReal}
-		kv.Put(confKeyValue, nil)
-	} else {
-		return nil, nil
-	}
 
 	data, err := json.Marshal(c)
 	if err != nil {
@@ -131,6 +127,7 @@ func (conf *ConfigGroupRepo) Delete(id string, ctx context.Context) error {
 	return nil
 }
 
+
 func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string, ctx context.Context) error {
 	_, span := conf.Tracer.Start(ctx, "r.AddConfigToGroup")
 	defer span.End()
@@ -138,6 +135,7 @@ func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config mo
 	group.Configs[key] = config
 
 	_, err := conf.Put(&group, id, ctx)
+
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -145,6 +143,7 @@ func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config mo
 
 	return nil
 }
+
 func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string, ctx context.Context) error {
 	_, span := conf.Tracer.Start(ctx, "r.RemoveConfigFromGroup")
 	defer span.End()
@@ -152,6 +151,7 @@ func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, conf
 	delete(group.Configs, key)
 
 	_, err := conf.Put(&group, id, ctx)
+
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err

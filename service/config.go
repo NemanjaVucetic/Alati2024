@@ -35,10 +35,12 @@ func (s ConfigService) GetAll(ctx context.Context) ([]model.Config, error) {
 	return s.repo.GetAll(ctx2)
 }
 
+
 func (s ConfigService) Add(c *model.Config, id string, ctx context.Context) (*model.Config, error) {
 	ctx2, span := s.Tracer.Start(ctx, "s.AddConfig")
 	defer span.End()
 	put, err := s.repo.Put(c, id, ctx2)
+
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
