@@ -15,8 +15,8 @@ import (
 )
 
 type ConfigRepo struct {
-	cli    *api.Client
-	logger *log.Logger
+	Cli    *api.Client
+	Logger *log.Logger
 	Tracer trace.Tracer
 }
 
@@ -32,8 +32,8 @@ func NewConfigRepo(logger *log.Logger, tracer trace.Tracer) (*ConfigRepo, error)
 	}
 
 	return &ConfigRepo{
-		cli:    client,
-		logger: logger,
+		Cli:    client,
+		Logger: logger,
 		Tracer: tracer,
 	}, nil
 }
@@ -41,7 +41,7 @@ func NewConfigRepo(logger *log.Logger, tracer trace.Tracer) (*ConfigRepo, error)
 func (conf *ConfigRepo) Get(id string, ctx context.Context) (*model.Config, error) {
 	_, span := conf.Tracer.Start(ctx, "r.GetConfig")
 	defer span.End()
-	kv := conf.cli.KV()
+	kv := conf.Cli.KV()
 
 	pair, _, err := kv.Get(id, nil)
 	if err != nil {
@@ -67,7 +67,7 @@ func (conf *ConfigRepo) Get(id string, ctx context.Context) (*model.Config, erro
 func (conf *ConfigRepo) GetAll(ctx context.Context) ([]model.Config, error) {
 	_, span := conf.Tracer.Start(ctx, "r.GetAllConfig")
 	defer span.End()
-	kv := conf.cli.KV()
+	kv := conf.Cli.KV()
 	data, _, err := kv.List(all, nil)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
@@ -91,7 +91,7 @@ func (conf *ConfigRepo) GetAll(ctx context.Context) ([]model.Config, error) {
 func (conf *ConfigRepo) Put(c *model.Config, id string, ctx context.Context) (*model.Config, error) {
 	_, span := conf.Tracer.Start(ctx, "r.AddConfig")
 	defer span.End()
-	kv := conf.cli.KV()
+	kv := conf.Cli.KV()
 	value, _, err := kv.Get(id, nil)
 	if value == nil {
 		idReal, _ := json.Marshal(id)
@@ -126,7 +126,7 @@ func (conf *ConfigRepo) Put(c *model.Config, id string, ctx context.Context) (*m
 func (conf *ConfigRepo) Delete(id string, ctx context.Context) error {
 	_, span := conf.Tracer.Start(ctx, "r.DeleteConfig")
 	defer span.End()
-	kv := conf.cli.KV()
+	kv := conf.Cli.KV()
 
 	_, err := kv.Delete(id, nil)
 	if err != nil {
@@ -140,7 +140,7 @@ func (conf *ConfigRepo) Delete(id string, ctx context.Context) error {
 func (conf *ConfigRepo) DeleteAll(ctx context.Context) error {
 	_, span := conf.Tracer.Start(ctx, "r.DeleteAllConfig")
 	defer span.End()
-	kv := conf.cli.KV()
+	kv := conf.Cli.KV()
 
 	_, err := kv.DeleteTree(all, nil)
 	if err != nil {
