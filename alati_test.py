@@ -20,6 +20,10 @@ def browser():
     options = webdriver.ChromeOptions()
     options.add_argument("--disable-web-security")
     options.add_argument("--disable-site-isolation-trials")
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--remote-debugging-port=9222")
     # kreiraj instancu drajvera za test
     driver = webdriver.Chrome(options=options)
 
