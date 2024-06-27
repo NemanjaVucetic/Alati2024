@@ -25,35 +25,42 @@ type ConfigGroupHandler struct {
 	Tracer        trace.Tracer
 }
 
-func NewConfigGroupHandler(service service.ConfigGroupService, serviceConfig service.ConfigService, logger *log.Logger, tracer trace.Tracer) ConfigGroupHandler {
+func NewConfigGroupHandler(service service.ConfigGroupService, serviceConfig service.ConfigService,
+	logger *log.Logger, Tracer trace.Tracer) ConfigGroupHandler {
+
 	return ConfigGroupHandler{
 		service:       service,
 		serviceConfig: serviceConfig,
 		logger:        logger,
-		Tracer:        tracer,
+		Tracer:        Tracer,
 	}
 }
 
-func decodeBodyCG(r io.Reader) (*model.ConfigGroup, error) {
+func (c ConfigGroupHandler) decodeBodyCG(r io.Reader, ctx context.Context) (*model.ConfigGroup, context.Context, error) {
+	cont, span := c.Tracer.Start(ctx, "decodeBody")
+	defer span.End()
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
 	var rt model.ConfigGroup
 	if err := dec.Decode(&rt); err != nil {
-		return nil, err
+		return nil, cont, err
 	}
-	return &rt, nil
+	return &rt, cont, nil
 }
 
-func decodeBodyLabels(r io.Reader) (*map[string]string, error) {
-	dec := json.NewDecoder(r)
-	dec.DisallowUnknownFields()
+func (c *ConfigGroupHandler) renderJSON(w http.ResponseWriter, v interface{}, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "renderJSON")
+	defer span.End()
+	js, err := json.Marshal(v)
 
-	var rt map[string]string
-	if err := dec.Decode(&rt); err != nil {
-		return nil, err
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	return &rt, nil
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
 }
 
 // @Summary Get a configuration group
@@ -67,8 +74,8 @@ func decodeBodyLabels(r io.Reader) (*map[string]string, error) {
 // @Failure 404 {string} string "Configuration group not found"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/{name}/{version} [get]
-func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "GetConfig")
+func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.GetGroup")
 	defer span.End()
 	name := mux.Vars(r)["name"]
 	version := mux.Vars(r)["version"]
@@ -101,8 +108,8 @@ func (c ConfigGroupHandler) Get(w http.ResponseWriter, r *http.Request, ctx cont
 // @Success 200 {array} model.ConfigGroup
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/ [get]
-func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "GetAllConfigs")
+func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.GetAllGroups")
 	defer span.End()
 	allProducts, err := c.service.GetAll(ctx)
 
@@ -112,7 +119,7 @@ func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request, ctx
 		c.logger.Fatal("Database exception: ", err)
 	}
 
-	renderJSON(rw, allProducts)
+	c.renderJSON(rw, allProducts, ctx)
 
 }
 
@@ -127,8 +134,8 @@ func (c *ConfigGroupHandler) GetAll(rw http.ResponseWriter, h *http.Request, ctx
 // @Failure 415 {string} string "Unsupported media type"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/ [post]
-func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "AddConfig")
+func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
+	ctx, span := c.Tracer.Start(req.Context(), "h.AddGroup")
 	defer span.End()
 	contentType := req.Header.Get("Content-Type")
 	idempotency_key := req.Header.Get("idempotency-key")
@@ -146,14 +153,14 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request, ctx co
 		return
 	}
 
-	rt, err := decodeBodyCG(req.Body)
+	rt, cont, err := c.decodeBodyCG(req.Body, ctx)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	group, err := c.service.Add(rt, idempotency_key, ctx)
+	group, err := c.service.Add(rt, idempotency_key, cont)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -166,7 +173,7 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request, ctx co
 		return
 	}
 
-	renderJSON(w, group)
+	c.renderJSON(w, group, cont)
 }
 
 // @Summary Delete a configuration group
@@ -178,8 +185,8 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request, ctx co
 // @Success 200 {string} string "Deleted"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/{name}/{version} [delete]
-func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "DeleteConfig")
+func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.DeleteGroup")
 	defer span.End()
 	vars := mux.Vars(r)
 	name := vars["name"]
@@ -195,7 +202,7 @@ func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request, ctx c
 		return
 	}
 
-	renderJSON(w, "Deleted")
+	c.renderJSON(w, "Deleted", ctx)
 }
 
 // @Summary Add a configuration to a group
@@ -209,8 +216,8 @@ func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request, ctx c
 // @Success 200 {string} string "success Put"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC} [put]
-func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "AddConfigToGroup")
+func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.AddConfToGroup")
 	defer span.End()
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -233,7 +240,7 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	renderJSON(w, "success Put")
+	c.renderJSON(w, "success Put", ctx)
 }
 
 // @Summary Remove a configuration from a group
@@ -247,8 +254,8 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 // @Success 200 {string} string "success Put"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/{nameG}/{versionG}/configs/{nameC}/{versionC} [put]
-func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "RemoveConfigFromGroup")
+func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.RemoveConfFromGroup")
 	defer span.End()
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -271,7 +278,7 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	renderJSON(w, "success Put")
+	c.renderJSON(w, "success Put", ctx)
 }
 
 // @Summary Get configurations by labels
@@ -287,8 +294,8 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 // @Failure 400 {string} string "Invalid input"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/{nameG}/{versionG}/configs/{labels}/{nameC}/{versionC} [get]
-func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "GetConfigsByLabels")
+func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.GetConfigsByLabels")
 	defer span.End()
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -317,7 +324,7 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, conf)
+	c.renderJSON(w, conf, ctx)
 }
 
 // @Summary Delete configurations by labels
@@ -333,8 +340,8 @@ func (c ConfigGroupHandler) GetConfigsByLabels(w http.ResponseWriter, r *http.Re
 // @Failure 400 {string} string "Invalid input"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configGroups/{nameG}/{versionG}/configs/{labels}/{nameC}/{versionC} [patch]
-func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "DeleteCOnfigsByLabels")
+func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.DeleteConfigsByLabels")
 	defer span.End()
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
@@ -363,5 +370,5 @@ func (c ConfigGroupHandler) DeleteConfigsByLabels(w http.ResponseWriter, r *http
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	renderJSON(w, "deleted")
+	c.renderJSON(w, "deleted", ctx)
 }

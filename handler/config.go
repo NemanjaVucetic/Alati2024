@@ -31,18 +31,23 @@ func NewConfigHandler(service service.ConfigService, logger *log.Logger, tracer 
 	}
 }
 
-func decodeBody(r io.Reader) (*model.Config, error) {
+func (c *ConfigHandler) decodeBody(r io.Reader, ctx context.Context) (config *model.Config, cont context.Context, err error) {
+	cont, span := c.Tracer.Start(ctx, "decodeBody")
+	defer span.End()
+
 	dec := json.NewDecoder(r)
 	dec.DisallowUnknownFields()
 
 	var rt model.Config
 	if err := dec.Decode(&rt); err != nil {
-		return nil, err
+		return nil, cont, err
 	}
-	return &rt, nil
+	return &rt, cont, nil
 }
 
-func renderJSON(w http.ResponseWriter, v interface{}) {
+func (c *ConfigHandler) renderJSON(w http.ResponseWriter, v interface{}, ctx context.Context) {
+	_, span := c.Tracer.Start(ctx, "renderJSON")
+	defer span.End()
 	js, err := json.Marshal(v)
 
 	if err != nil {
@@ -65,8 +70,8 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 // @Failure 404 {string} string "Configuration not found"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/{name}/{version} [get]
-func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "GetConfig")
+func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.GetConfig")
 	defer span.End()
 
 	//time.Sleep(9 * time.Second)
@@ -101,8 +106,8 @@ func (c ConfigHandler) Get(w http.ResponseWriter, r *http.Request, ctx context.C
 // @Success 200 {array} model.Config
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/ [get]
-func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "GetAllConfigs")
+func (c *ConfigHandler) GetAll(rw http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.GetAllConfig")
 	defer span.End()
 	allProducts, err := c.service.GetAll(ctx)
 
@@ -111,7 +116,7 @@ func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request, ctx cont
 		c.logger.Fatal("Database exception: ", err)
 	}
 
-	renderJSON(rw, allProducts)
+	c.renderJSON(rw, allProducts, ctx)
 
 }
 
@@ -127,8 +132,8 @@ func (c *ConfigHandler) GetAll(rw http.ResponseWriter, h *http.Request, ctx cont
 // @Failure 415 {string} string "Unsupported media type"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/ [post]
-func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "AddConfig")
+func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
+	ctx, span := c.Tracer.Start(req.Context(), "h.AddConfig")
 	defer span.End()
 	contentType := req.Header.Get("Content-Type")
 	idempotency_key := req.Header.Get("idempotency-key")
@@ -144,13 +149,13 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request, ctx context
 		return
 	}
 
-	rt, err := decodeBody(req.Body)
+	rt, cont, err := c.decodeBody(req.Body, ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	config, err := c.service.Add(rt, idempotency_key, ctx)
+	config, err := c.service.Add(rt, idempotency_key, cont)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -161,7 +166,7 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request, ctx context
 		return
 	}
 
-	renderJSON(w, config)
+	c.renderJSON(w, config, cont)
 }
 
 // @Summary Delete a configuration
@@ -173,8 +178,8 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request, ctx context
 // @Success 200 {string} string "Deleted"
 // @Failure 500 {string} string "Internal server error"
 // @Router /configs/{name}/{version} [delete]
-func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "DeleteConfig")
+func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.DeleteConfig")
 	defer span.End()
 	vars := mux.Vars(r)
 	name := vars["name"]
@@ -189,11 +194,11 @@ func (c ConfigHandler) Delete(w http.ResponseWriter, r *http.Request, ctx contex
 		return
 	}
 
-	renderJSON(w, "Deleted")
+	c.renderJSON(w, "Deleted", ctx)
 }
 
-func (c ConfigHandler) DeleteAll(rw http.ResponseWriter, h *http.Request, ctx context.Context) {
-	_, span := c.Tracer.Start(ctx, "DeleteAllConfigs")
+func (c ConfigHandler) DeleteAll(rw http.ResponseWriter, r *http.Request) {
+	ctx, span := c.Tracer.Start(r.Context(), "h.DeleteAllConfigs")
 	defer span.End()
 	err := c.service.DeleteAll(ctx)
 	if err != nil {

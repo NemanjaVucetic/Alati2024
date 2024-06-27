@@ -20,7 +20,7 @@ type ConfigRepo struct {
 	Tracer trace.Tracer
 }
 
-func NewConfigRepo(logger *log.Logger, ctx context.Context) (*ConfigRepo, error) {
+func NewConfigRepo(logger *log.Logger, tracer trace.Tracer) (*ConfigRepo, error) {
 	db := os.Getenv("DB")
 	dbport := os.Getenv("DBPORT")
 
@@ -34,11 +34,12 @@ func NewConfigRepo(logger *log.Logger, ctx context.Context) (*ConfigRepo, error)
 	return &ConfigRepo{
 		cli:    client,
 		logger: logger,
+		Tracer: tracer,
 	}, nil
 }
 
 func (conf *ConfigRepo) Get(id string, ctx context.Context) (*model.Config, error) {
-	_, span := conf.Tracer.Start(ctx, "GetConfig")
+	_, span := conf.Tracer.Start(ctx, "r.GetConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 
@@ -64,7 +65,7 @@ func (conf *ConfigRepo) Get(id string, ctx context.Context) (*model.Config, erro
 }
 
 func (conf *ConfigRepo) GetAll(ctx context.Context) ([]model.Config, error) {
-	_, span := conf.Tracer.Start(ctx, "GetAllConfig")
+	_, span := conf.Tracer.Start(ctx, "r.GetAllConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 	data, _, err := kv.List(all, nil)
@@ -88,7 +89,7 @@ func (conf *ConfigRepo) GetAll(ctx context.Context) ([]model.Config, error) {
 }
 
 func (conf *ConfigRepo) Put(c *model.Config, id string, ctx context.Context) (*model.Config, error) {
-	_, span := conf.Tracer.Start(ctx, "AddConfig")
+	_, span := conf.Tracer.Start(ctx, "r.AddConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 	value, _, err := kv.Get(id, nil)
@@ -123,7 +124,7 @@ func (conf *ConfigRepo) Put(c *model.Config, id string, ctx context.Context) (*m
 }
 
 func (conf *ConfigRepo) Delete(id string, ctx context.Context) error {
-	_, span := conf.Tracer.Start(ctx, "DeleteConfig")
+	_, span := conf.Tracer.Start(ctx, "r.DeleteConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 
@@ -137,7 +138,7 @@ func (conf *ConfigRepo) Delete(id string, ctx context.Context) error {
 }
 
 func (conf *ConfigRepo) DeleteAll(ctx context.Context) error {
-	_, span := conf.Tracer.Start(ctx, "DeleteAllConfig")
+	_, span := conf.Tracer.Start(ctx, "r.DeleteAllConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 

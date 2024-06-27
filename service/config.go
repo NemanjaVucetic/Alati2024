@@ -24,21 +24,21 @@ func NewConfigService(repo model.ConfigRepository, logger *log.Logger, tracer tr
 }
 
 func (s ConfigService) Get(id string, ctx context.Context) (*model.Config, error) {
-	_, span := s.Tracer.Start(ctx, "GetConfig")
+	ctx2, span := s.Tracer.Start(ctx, "s.GetConfig")
 	defer span.End()
-	return s.repo.Get(id, ctx)
+	return s.repo.Get(id, ctx2)
 }
 
 func (s ConfigService) GetAll(ctx context.Context) ([]model.Config, error) {
-	_, span := s.Tracer.Start(ctx, "GetAllConfigs")
+	ctx2, span := s.Tracer.Start(ctx, "s.GetAllConfigs")
 	defer span.End()
-	return s.repo.GetAll(ctx)
+	return s.repo.GetAll(ctx2)
 }
 
 func (s ConfigService) Add(c *model.Config, id string, ctx context.Context) (*model.Config, error) {
-	_, span := s.Tracer.Start(ctx, "AddConfig")
+	ctx2, span := s.Tracer.Start(ctx, "s.AddConfig")
 	defer span.End()
-	put, err := s.repo.Put(c, id, ctx)
+	put, err := s.repo.Put(c, id, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
@@ -47,9 +47,9 @@ func (s ConfigService) Add(c *model.Config, id string, ctx context.Context) (*mo
 }
 
 func (s ConfigService) Delete(id string, ctx context.Context) error {
-	_, span := s.Tracer.Start(ctx, "DeleteConfig")
+	ctx2, span := s.Tracer.Start(ctx, "s.DeleteConfig")
 	defer span.End()
-	err := s.repo.Delete(id, ctx)
+	err := s.repo.Delete(id, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -58,9 +58,9 @@ func (s ConfigService) Delete(id string, ctx context.Context) error {
 }
 
 func (s ConfigService) DeleteAll(ctx context.Context) error {
-	_, span := s.Tracer.Start(ctx, "DeleteAllConfigs")
+	ctx2, span := s.Tracer.Start(ctx, "s.DeleteAllConfigs")
 	defer span.End()
-	err := s.repo.DeleteAll(ctx)
+	err := s.repo.DeleteAll(ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err

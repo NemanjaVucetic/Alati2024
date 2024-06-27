@@ -25,21 +25,21 @@ func NewConfigGroupService(repo *repo.ConfigGroupRepo, logger *log.Logger, trace
 }
 
 func (s ConfigGroupService) GetAll(ctx context.Context) ([]model.ConfigGroup, error) {
-	_, span := s.Tracer.Start(ctx, "GetAllConfig")
+	ctx2, span := s.Tracer.Start(ctx, "s.GetAllConfig")
 	defer span.End()
-	return s.repo.GetAll(ctx)
+	return s.repo.GetAll(ctx2)
 }
 
 func (s ConfigGroupService) Get(id string, ctx context.Context) (*model.ConfigGroup, error) {
-	_, span := s.Tracer.Start(ctx, "GetConfig")
+	ctx2, span := s.Tracer.Start(ctx, "s.GetConfig")
 	defer span.End()
-	return s.repo.Get(id, ctx)
+	return s.repo.Get(id, ctx2)
 }
 
 func (s ConfigGroupService) Add(c *model.ConfigGroup, id string, ctx context.Context) (*model.ConfigGroup, error) {
-	_, span := s.Tracer.Start(ctx, "AddConfig")
+	ctx2, span := s.Tracer.Start(ctx, "s.AddConfig")
 	defer span.End()
-	group, err := s.repo.Put(c, id, ctx)
+	group, err := s.repo.Put(c, id, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
@@ -48,9 +48,9 @@ func (s ConfigGroupService) Add(c *model.ConfigGroup, id string, ctx context.Con
 }
 
 func (s ConfigGroupService) Delete(id string, ctx context.Context) error {
-	_, span := s.Tracer.Start(ctx, "DeleteConfig")
+	ctx2, span := s.Tracer.Start(ctx, "s.DeleteConfig")
 	defer span.End()
-	err := s.repo.Delete(id, ctx)
+	err := s.repo.Delete(id, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -59,9 +59,9 @@ func (s ConfigGroupService) Delete(id string, ctx context.Context) error {
 }
 
 func (s ConfigGroupService) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string, ctx context.Context) error {
-	_, span := s.Tracer.Start(ctx, "AddConfigToGroup")
+	ctx2, span := s.Tracer.Start(ctx, "s.AddConfigToGroup")
 	defer span.End()
-	err := s.repo.AddConfigToGroup(group, config, id, ctx)
+	err := s.repo.AddConfigToGroup(group, config, id, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -70,9 +70,9 @@ func (s ConfigGroupService) AddConfigToGroup(group model.ConfigGroup, config mod
 }
 
 func (s ConfigGroupService) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string, ctx context.Context) error {
-	_, span := s.Tracer.Start(ctx, "RemoveConfigFromGroup")
+	ctx2, span := s.Tracer.Start(ctx, "s.RemoveConfigFromGroup")
 	defer span.End()
-	err := s.repo.RemoveConfigFromGroup(group, config, id, ctx)
+	err := s.repo.RemoveConfigFromGroup(group, config, id, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err
@@ -81,9 +81,9 @@ func (s ConfigGroupService) RemoveConfigFromGroup(group model.ConfigGroup, confi
 }
 
 func (s ConfigGroupService) GetConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) ([]model.Config, error) {
-	_, span := s.Tracer.Start(ctx, "GetConfigByLabels")
+	ctx2, span := s.Tracer.Start(ctx, "s.GetConfigByLabels")
 	defer span.End()
-	configs, err := s.repo.GetConfigsByLabels(prefixGroup, prefixConf, ctx)
+	configs, err := s.repo.GetConfigsByLabels(prefixGroup, prefixConf, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return nil, err
@@ -92,9 +92,9 @@ func (s ConfigGroupService) GetConfigsByLabels(prefixGroup string, prefixConf st
 }
 
 func (s ConfigGroupService) DeleteConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) error {
-	_, span := s.Tracer.Start(ctx, "DeleteConfigByLabels")
+	ctx2, span := s.Tracer.Start(ctx, "s.DeleteConfigByLabels")
 	defer span.End()
-	err := s.repo.DeleteConfigsByLabels(prefixGroup, prefixConf, ctx)
+	err := s.repo.DeleteConfigsByLabels(prefixGroup, prefixConf, ctx2)
 	if err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		return err

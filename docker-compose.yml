@@ -10,12 +10,12 @@ services:
     container_name: "config-server"
     hostname: "config-server"
     ports:
-      - 8080:8080
+      - "8080:8080"
     environment:
       - PORT=8080
       - DB=consul
       - DBPORT=8500
-      - JAEGER_ENDPOINT: http://jaeger:14268/api/traces
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
     depends_on:
       - consul
 
@@ -39,16 +39,17 @@ services:
       - "8600:8600/udp"
     command: "agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0"
     volumes:
-      - ./cosnul_store:/consul/data
+      - ./consul_store:/consul/data
+
   tracing:
     image: jaegertracing/all-in-one:latest
-    container name: jaeger
+    container_name: jaeger
     ports:
-          - "6831:6831/udp"
-          - "6832:6832/udp"
-          - "16686:16686"
-          - "14268:14268"
-          - "14250:14250"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
 
 volumes:
   consul:

@@ -21,7 +21,7 @@ type ConfigGroupRepo struct {
 	Tracer trace.Tracer
 }
 
-func NewConfigGroupRepo(logger *log.Logger, ctx context.Context) (*ConfigGroupRepo, error) {
+func NewConfigGroupRepo(logger *log.Logger, tracer trace.Tracer) (*ConfigGroupRepo, error) {
 	db := os.Getenv("DB")
 	dbport := os.Getenv("DBPORT")
 
@@ -35,11 +35,12 @@ func NewConfigGroupRepo(logger *log.Logger, ctx context.Context) (*ConfigGroupRe
 	return &ConfigGroupRepo{
 		cli:    client,
 		logger: logger,
+		Tracer: tracer,
 	}, nil
 }
 
 func (conf *ConfigGroupRepo) Get(id string, ctx context.Context) (*model.ConfigGroup, error) {
-	_, span := conf.Tracer.Start(ctx, "GetConfig")
+	_, span := conf.Tracer.Start(ctx, "r.GetConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 
@@ -64,7 +65,7 @@ func (conf *ConfigGroupRepo) Get(id string, ctx context.Context) (*model.ConfigG
 }
 
 func (conf *ConfigGroupRepo) GetAll(ctx context.Context) ([]model.ConfigGroup, error) {
-	_, span := conf.Tracer.Start(ctx, "GetAllConfig")
+	_, span := conf.Tracer.Start(ctx, "r.GetAllConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 	data, _, err := kv.List(allGroups, nil)
@@ -88,7 +89,7 @@ func (conf *ConfigGroupRepo) GetAll(ctx context.Context) ([]model.ConfigGroup, e
 }
 
 func (conf *ConfigGroupRepo) Put(c *model.ConfigGroup, id string, ctx context.Context) (*model.ConfigGroup, error) {
-	_, span := conf.Tracer.Start(ctx, "AddConfig")
+	_, span := conf.Tracer.Start(ctx, "r.AddConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 	value, _, err := kv.Get(id, nil)
@@ -117,7 +118,7 @@ func (conf *ConfigGroupRepo) Put(c *model.ConfigGroup, id string, ctx context.Co
 }
 
 func (conf *ConfigGroupRepo) Delete(id string, ctx context.Context) error {
-	_, span := conf.Tracer.Start(ctx, "DeleteConfig")
+	_, span := conf.Tracer.Start(ctx, "r.DeleteConfig")
 	defer span.End()
 	kv := conf.cli.KV()
 
@@ -131,7 +132,7 @@ func (conf *ConfigGroupRepo) Delete(id string, ctx context.Context) error {
 }
 
 func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string, ctx context.Context) error {
-	_, span := conf.Tracer.Start(ctx, "AddConfigToGroup")
+	_, span := conf.Tracer.Start(ctx, "r.AddConfigToGroup")
 	defer span.End()
 	key := constructKeyInGroup(group, config)
 	group.Configs[key] = config
@@ -145,7 +146,7 @@ func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config mo
 	return nil
 }
 func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, config model.Config, id string, ctx context.Context) error {
-	_, span := conf.Tracer.Start(ctx, "RemoveConfigFromGroup")
+	_, span := conf.Tracer.Start(ctx, "r.RemoveConfigFromGroup")
 	defer span.End()
 	key := constructKeyInGroup(group, config)
 	delete(group.Configs, key)
@@ -160,7 +161,7 @@ func (conf *ConfigGroupRepo) RemoveConfigFromGroup(group model.ConfigGroup, conf
 }
 
 func (conf *ConfigGroupRepo) GetConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) ([]model.Config, error) {
-	_, span := conf.Tracer.Start(ctx, "GetCOnfigsByLabels")
+	_, span := conf.Tracer.Start(ctx, "r.GetCOnfigsByLabels")
 	defer span.End()
 	kv := conf.cli.KV()
 
@@ -190,7 +191,7 @@ func (conf *ConfigGroupRepo) GetConfigsByLabels(prefixGroup string, prefixConf s
 }
 
 func (conf *ConfigGroupRepo) DeleteConfigsByLabels(prefixGroup string, prefixConf string, ctx context.Context) error {
-	_, span := conf.Tracer.Start(ctx, "DeleteCOnfigsByLabels")
+	_, span := conf.Tracer.Start(ctx, "r.DeleteCOnfigsByLabels")
 	defer span.End()
 	kv := conf.cli.KV()
 
