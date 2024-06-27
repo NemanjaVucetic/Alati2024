@@ -3,9 +3,7 @@ version: "3.1"
 services:
   # Our service.
   server:
-    build:
-      context: .
-      dockerfile: Dockerfile-multistage
+    image: mtucakov/alati2024:latest
     restart: always
     container_name: "config-server"
     hostname: "config-server"
