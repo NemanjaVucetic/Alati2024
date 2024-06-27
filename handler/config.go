@@ -135,6 +135,7 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 	ctx, span := c.Tracer.Start(req.Context(), "h.AddConfig")
 	defer span.End()
 	contentType := req.Header.Get("Content-Type")
+	idempotency_key := req.Header.Get("idempotency_key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 
 	if err != nil {
@@ -153,13 +154,11 @@ func (c ConfigHandler) Add(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-
 	config, err := c.service.Add(rt, idempotency_key, cont)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 
 	if config == nil && err == nil {
 		http.Error(w, "Idempotency protection", http.StatusForbidden)

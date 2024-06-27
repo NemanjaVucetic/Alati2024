@@ -7,18 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
 	"io"
 	"log"
 	"mime"
 	"net/http"
 	"strings"
 
-
 	"github.com/gorilla/mux"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-
 )
 
 type ConfigGroupHandler struct {
@@ -141,6 +138,7 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 	ctx, span := c.Tracer.Start(req.Context(), "h.AddGroup")
 	defer span.End()
 	contentType := req.Header.Get("Content-Type")
+	idempotency_key := req.Header.Get("idempotency_key")
 	mediatype, _, err := mime.ParseMediaType(contentType)
 
 	if err != nil {
@@ -161,7 +159,6 @@ func (c ConfigGroupHandler) Add(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 
 	group, err := c.service.Add(rt, idempotency_key, cont)
 	if err != nil {
@@ -222,6 +219,7 @@ func (c ConfigGroupHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Request) {
 	ctx, span := c.Tracer.Start(r.Context(), "h.AddConfToGroup")
 	defer span.End()
+	idempotency_key := r.Header.Get("idempotency_key")
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
 	versionGStr := vars["versionG"]
@@ -236,7 +234,6 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 
 	group, _ := c.service.Get(gStr, ctx)
 	conf, _ := c.serviceConfig.Get(cStr, ctx)
-
 
 	err := c.service.AddConfigToGroup(*group, *conf, idempotency_key, ctx)
 
@@ -262,6 +259,7 @@ func (c ConfigGroupHandler) AddConfToGroup(w http.ResponseWriter, r *http.Reques
 func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.Request) {
 	ctx, span := c.Tracer.Start(r.Context(), "h.RemoveConfFromGroup")
 	defer span.End()
+	idempotency_key := r.Header.Get("idempotency_key")
 	vars := mux.Vars(r)
 	nameG := vars["nameG"]
 	versionGStr := vars["versionG"]
@@ -276,7 +274,6 @@ func (c ConfigGroupHandler) RemoveConfFromGroup(w http.ResponseWriter, r *http.R
 
 	config, _ := c.serviceConfig.Get(idc, ctx)
 	group, _ := c.service.Get(id, ctx)
-
 
 	err := c.service.RemoveConfigFromGroup(*group, *config, idempotency_key, ctx)
 	if err != nil {

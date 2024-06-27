@@ -5,17 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/api"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
-
 	"github.com/hashicorp/consul/api"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-
 )
 
 type ConfigGroupRepo struct {
@@ -126,7 +123,6 @@ func (conf *ConfigGroupRepo) Delete(id string, ctx context.Context) error {
 
 	return nil
 }
-
 
 func (conf *ConfigGroupRepo) AddConfigToGroup(group model.ConfigGroup, config model.Config, id string, ctx context.Context) error {
 	_, span := conf.Tracer.Start(ctx, "r.AddConfigToGroup")
