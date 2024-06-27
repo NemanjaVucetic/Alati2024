@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /projekat
+RUN CGO_ENABLED=0 GOOS=linux go build -o /alati
 
 # Use a small Alpine Linux image for the final stage
 FROM alpine:latest
@@ -25,7 +25,7 @@ WORKDIR /root/
 RUN apk --no-cache add ca-certificates
 
 # Copy the binary from the builder stage
-COPY --from=builder /projekat .
+COPY --from=builder /alati .
 
 # Make port 8080 available to the outside world
 EXPOSE 8080
