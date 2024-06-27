@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 alive: server-1.dc1 172.25.0.4:8302
 alive: server-1.dc1 172.26.0.3:8302
 alive: server-1.dc1 172.26.0.3:8302
@@ -11,3 +12,9 @@ alive: server-1.dc1 172.21.0.3:8302
 alive: server-1.dc1 172.21.0.2:8302
 alive: server-1.dc1 172.22.0.4:8302
 alive: server-1.dc1 172.23.0.4:8302
+=======
+alive: server-1.dc1 192.168.16.4:8302
+alive: server-1.dc1 192.168.16.4:8302
+alive: server-1.dc1 192.168.16.3:8302
+alive: server-1.dc1 192.168.32.4:8302
+>>>>>>> bd11b5fdcfdbd8662000d5543440162aa7f46b1c
