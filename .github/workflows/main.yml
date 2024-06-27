@@ -28,8 +28,10 @@ jobs:
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       -
-        name: Build and push Docker image
+        name: Build and push
         uses: docker/build-push-action@v5
-        run: |
-          docker build -t mtucakov/alati2024:latest .
-          docker push mtucakov/alati2024:latest
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/alati2024:latest
