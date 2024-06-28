@@ -62,7 +62,7 @@ jobs:
 
       - name: Wait for services to be ready
         run: |
-          while ! curl -sSf http://localhost:8080 > /dev/null; do
+          while ! curl -sSf http://localhost:8080/swagger/index.html#/ > /dev/null; do
             echo "Waiting for application to be ready..."
             sleep 10
           done
