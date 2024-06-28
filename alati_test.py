@@ -49,56 +49,56 @@ class Test:
         assert result.is_displayed()
         assert result.text == "200"
     
-    # def test_getAllConf(self , browser:'WebDriver'):
-    #     browser.get('http://localhost:8080/swagger/index.html#/')
-    #     get_btn = browser.find_element(By.CSS_SELECTOR,"#operations-configs-get_configs_ > div > button > span.opblock-summary-method")
-    #     get_btn.click()
-    #     btn2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs_']/div[2]/div/div[2]/div[1]/div[2]/button")
-    #     btn2.click()
-    #     btn3 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs_']/div[2]/div/div[3]/button")
-    #     btn3.click()
+    def test_getAllConf(self , browser:'WebDriver'):
+        browser.get('http://localhost:8080/swagger/index.html#/')
+        get_btn = browser.find_element(By.CSS_SELECTOR,"#operations-configs-get_configs_ > div > button > span.opblock-summary-method")
+        get_btn.click()
+        btn2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs_']/div[2]/div/div[2]/div[1]/div[2]/button")
+        btn2.click()
+        btn3 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs_']/div[2]/div/div[3]/button")
+        btn3.click()
 
-    #     result = browser.find_element(By.XPATH , "//*[text()='200']")
-    #     assert result.is_displayed()
-    #     assert result.text == "200"
+        result = browser.find_element(By.XPATH , "//*[text()='200']")
+        assert result.is_displayed()
+        assert result.text == "200"
 
-    # def test_getOneConf(self , browser:'WebDriver'):
-    #     browser.get('http://localhost:8080/swagger/index.html#/')
-    #     get_btn = browser.find_element(By.CSS_SELECTOR,"#operations-configs-get_configs__name___version_ > div > button > span.opblock-summary-method")
-    #     get_btn.click()
-    #     btn2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[1]/div[2]/button")
-    #     btn2.click()
-    #     input1 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[1]/td[2]/input")
-    #     input1.send_keys(Keys.BACK_SPACE * 100)
-    #     input1.send_keys("db_config")
-    #     input2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[2]/td[2]/input")
-    #     input2.send_keys(Keys.BACK_SPACE * 100)
-    #     input2.send_keys("2")
-    #     btn3 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[3]/button[1]")
-    #     btn3.click()
+    def test_getOneConf(self , browser:'WebDriver'):
+        browser.get('http://localhost:8080/swagger/index.html#/')
+        get_btn = browser.find_element(By.CSS_SELECTOR,"#operations-configs-get_configs__name___version_ > div > button > span.opblock-summary-method")
+        get_btn.click()
+        btn2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[1]/div[2]/button")
+        btn2.click()
+        input1 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[1]/td[2]/input")
+        input1.send_keys(Keys.BACK_SPACE * 100)
+        input1.send_keys("db_config")
+        input2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[2]/td[2]/input")
+        input2.send_keys(Keys.BACK_SPACE * 100)
+        input2.send_keys("2")
+        btn3 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[3]/button[1]")
+        btn3.click()
 
-    #     result = browser.find_element(By.XPATH , "//*[text()='200']")
-    #     assert result.is_displayed()
-    #     assert result.text == "200"
+        result = browser.find_element(By.XPATH , "//*[text()='200']")
+        assert result.is_displayed()
+        assert result.text == "200"
 
-    # def test_getOneConfFail(self , browser:'WebDriver'):
-    #     browser.get('http://localhost:8080/swagger/index.html#/')
-    #     get_btn = browser.find_element(By.CSS_SELECTOR,"#operations-configs-get_configs__name___version_ > div > button > span.opblock-summary-method")
-    #     get_btn.click()
-    #     btn2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[1]/div[2]/button")
-    #     btn2.click()
-    #     input1 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[1]/td[2]/input")
-    #     input1.send_keys(Keys.BACK_SPACE * 100)
-    #     input1.send_keys("db_config")
-    #     input2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[2]/td[2]/input")
-    #     input2.send_keys(Keys.BACK_SPACE * 100)
-    #     input2.send_keys("1")
-    #     btn3 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[3]/button[1]")
-    #     btn3.click()
+    def test_getOneConfFail(self , browser:'WebDriver'):
+        browser.get('http://localhost:8080/swagger/index.html#/')
+        get_btn = browser.find_element(By.CSS_SELECTOR,"#operations-configs-get_configs__name___version_ > div > button > span.opblock-summary-method")
+        get_btn.click()
+        btn2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[1]/div[2]/button")
+        btn2.click()
+        input1 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[1]/td[2]/input")
+        input1.send_keys(Keys.BACK_SPACE * 100)
+        input1.send_keys("db_config")
+        input2 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[2]/div[2]/div/table/tbody/tr[2]/td[2]/input")
+        input2.send_keys(Keys.BACK_SPACE * 100)
+        input2.send_keys("1")
+        btn3 = browser.find_element(By.XPATH , "//*[@id='operations-configs-get_configs__name___version_']/div[2]/div/div[3]/button[1]")
+        btn3.click()
 
-    #     result = browser.find_element(By.XPATH , "//*[text()='Failed to fetch.']")
-    #     assert result.is_displayed()
-    #     assert result.text == "Failed to fetch."
+        result = browser.find_element(By.XPATH , "//*[text()='Failed to fetch.']")
+        assert result.is_displayed()
+        assert result.text == "Failed to fetch."
 
     def test_getOneGroup(self , browser:'WebDriver'):
         browser.get('http://localhost:8080/swagger/index.html#/')
